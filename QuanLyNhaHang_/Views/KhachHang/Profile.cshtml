@@ -1,0 +1,116 @@
+﻿@model IEnumerable<HoaDon>
+@{
+    Layout = null;
+    string avatar = ViewBag.Avatar as string ?? "";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tài khoản của tôi</title>
+    <link rel="shortcut icon" href="/assets_admin/images/favicon.svg" />
+    <link rel="stylesheet" href="/assets_admin/fonts/bootstrap/bootstrap-icons.css" />
+    <link rel="stylesheet" href="/assets_admin/css/main.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css" referrerpolicy="no-referrer" />
+</head>
+<body>
+    <div class="app-body" style="overflow:unset">
+        <div class="mx-n4 mb-4 p-4 bg-primary">
+            <div class="d-flex align-items-center flex-row flex-wrap">
+                @if (string.IsNullOrWhiteSpace(avatar))
+                {
+                    <i class="fa-solid fa-circle-user text-white" style="font-size: 64px"></i>
+                }
+                else
+                {
+                    <img style="object-fit:cover" src="@Url.Content("~/Images/Avatar/" + avatar)" class="img-5x rounded-circle" alt="Avatar" />
+                }
+                <div class="ms-3 text-white">
+                    <h5 class="mb-1">@ViewBag.HoTen</h5>
+                    <h6 class="m-0 fw-light">Mã khách hàng: @ViewBag.MaKH</h6>
+                </div>
+                <div class="d-flex justify-content-end align-items-center mt-3">
+                    <a asp-action="Welcome" asp-controller="Account" class="btn btn-link text-decoration-none me-3">Trở lại</a>
+                    <a asp-action="Logout" asp-controller="Account" class="btn btn-danger">Đăng xuất</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="row gx-4">
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex mb-2">
+                            <div class="icon-box md bg-primary rounded-5 me-3">
+                                <i style="color:white" class="fa-solid fa-cake-candles fa-bounce"></i>
+                            </div>
+                            <div class="d-flex flex-column">
+                                <h2 class="m-0 lh-1">@ViewBag.NgaySinh</h2>
+                                <p class="m-0 opacity-50">Ngày Sinh</p>
+                            </div>
+                        </div>
+                        <div class="progress thin mb-2"><div class="progress-bar bg-primary" style="width: 100%"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex mb-2">
+                            <div class="icon-box md bg-primary rounded-5 me-3">
+                                <i style="color:white" class="fa-solid fa-phone fa-shake"></i>
+                            </div>
+                            <div class="d-flex flex-column">
+                                <h2 class="m-0 lh-1">@ViewBag.SoDT</h2>
+                                <p class="m-0 opacity-50">Số Điện Thoại</p>
+                            </div>
+                        </div>
+                        <div class="progress thin mb-2"><div class="progress-bar bg-primary" style="width: 100%"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex mb-2">
+                            <div class="icon-box md bg-primary rounded-5 me-3">
+                                <i style="color:white" class="fa-solid fa-envelope fa-beat"></i>
+                            </div>
+                            <div class="d-flex flex-column">
+                                <span style="font-weight:bold" class="m-0 lh-1">@ViewBag.Mail</span>
+                                <p class="m-0 opacity-50">Email</p>
+                            </div>
+                        </div>
+                        <div class="progress thin mb-2"><div class="progress-bar bg-primary" style="width: 100%"></div></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4 card-bg">
+                    <a asp-action="DoiMaGiamGia" asp-controller="KhachHang">
+                        <div style="background-color: #fe8d25; overflow: hidden; border-radius: 9px" class="card-body text-white">
+                            <div class="d-flex mb-2">
+                                <div class="icon-box md bg-white rounded-5 me-3">
+                                    <i style="color: #fe8d25;" class="fa-solid fa-wallet"></i>
+                                </div>
+                                <div class="d-flex flex-column">
+                                    <h2 class="m-0 lh-1">@ViewBag.DiemThanhVien</h2>
+                                    <p class="m-0 opacity-50">Điểm Thành Viên</p>
+                                </div>
+                            </div>
+                            <div class="progress thin mb-2"><div class="progress-bar bg-white" style="width: 75%"></div></div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Thay cho .Action("lichSuDonHang", "KhachHang") -->
+        <partial name="lichSuDonHang" model="Model" />
+    </div>
+
+    <script src="/assets_admin/js/jquery.min.js"></script>
+    <script src="/assets_admin/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

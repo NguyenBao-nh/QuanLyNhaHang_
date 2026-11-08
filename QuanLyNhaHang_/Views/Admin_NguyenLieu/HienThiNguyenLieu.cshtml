@@ -1,0 +1,124 @@
+﻿@model IEnumerable<QuanLyNhaHang_.Models.NguyenLieu>
+@{
+    ViewData["Title"] = "Danh Sách Nguyên Liệu";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    int muc = ViewBag.MucToiThieu is int m ? m : 5;
+    var coLichSu = ViewBag.CoLichSu as HashSet<string> ?? new HashSet<string>();
+    bool moForm = TempData["MoFormThem"] as string == "1";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h2 class="text-primary">Quản Lý Nguyên Liệu</h2>
+        <div>
+            <button type="button" class="btn btn-primary" data-bs-toggle="collapse" data-bs-target="#formThemNL">
+                <i class="bi bi-plus-circle"></i> Thêm nguyên liệu
+            </button>
+            <a href="@Url.Action("ThemHoaDon", "Admin_HoaDon")" class="btn btn-success"><i class="bi bi-box-arrow-in-down"></i> Nhập hàng</a>
+        </div>
+    </div>
+
+    @if (TempData["ThanhCongNL"] != null)
+    {
+        <div class="alert alert-success mt-3">@TempData["ThanhCongNL"]</div>
+    }
+    @if (TempData["LoiNL"] != null)
+    {
+        <div class="alert alert-danger mt-3">@TempData["LoiNL"]</div>
+    }
+
+    @* Thêm nguyên liệu mới (vd: thêm món mới cần nguyên liệu chưa có). Tồn ban đầu = 0, nhập số lượng ở "Nhập hàng". *@
+    <div class="collapse @(moForm ? "show" : "") mt-3" id="formThemNL">
+        <div class="card card-body shadow-sm">
+            <h5 class="mb-3">Thêm nguyên liệu mới <small class="text-muted">(mã tự sinh: @ViewBag.MaMoi)</small></h5>
+            <form asp-action="ThemNguyenLieu" method="post" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label">Tên nguyên liệu <span class="text-danger">*</span></label>
+                    <input type="text" name="TenNguyenLieu" class="form-control" maxlength="30" required placeholder="VD: Nấm kim châm" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Đơn vị tính <span class="text-danger">*</span></label>
+                    <input type="text" name="Dvt" class="form-control" maxlength="10" required placeholder="kg, lít, bó..." />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Đơn giá (VNĐ) <span class="text-danger">*</span></label>
+                    <input type="number" name="DonGia" class="form-control" min="0" step="500" required />
+                </div>
+                <div class="col-md-2 d-grid">
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check-lg"></i> Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <p class="text-muted small mb-0">Tồn ≤ @muc được cảnh báo "Sắp hết" (sửa mức này ở <code>CanhBaoTonKho:MucToiThieu</code> trong appsettings.json).</p>
+
+    <div class="table-responsive mt-3">
+        <table class="table table-hover table-bordered shadow-sm bg-white">
+            <thead class="bg-primary text-white text-center">
+                <tr>
+                    <th>Mã Nguyên Liệu</th>
+                    <th>Tên Nguyên Liệu</th>
+                    <th>Số Lượng Tồn</th> <!-- Đã bổ sung cột Số Lượng Tồn -->
+                    <th>Đơn Giá</th>
+                    <th>Đơn Vị Tính</th>
+                    <th>Tình trạng</th>
+                    <th>Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model == null || !Model.Any())
+                {
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-3">Không có nguyên liệu nào!</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model)
+                    {
+                        int ton = item.Soluongton ?? 0;
+                        string mauDong = ton <= 0 ? "table-danger" : ton <= muc ? "table-warning" : "";
+                        <tr class="@mauDong">
+                            <td class="text-center fw-bold">@item.Manguyenlieu</td>
+                            <td>@item.Tennguyenlieu</td>
+                            <td class="text-center fw-semibold @(ton <= 0 ? "text-danger" : ton <= muc ? "text-warning" : "text-success")">@ton</td> <!-- Hiển thị giá trị số lượng tồn -->
+                            <td class="text-end">@(item.Dongia.HasValue ? item.Dongia.Value.ToString("N0") : "0")</td>
+                            <td class="text-center">@item.Dvt</td>
+                            <td class="text-center">
+                                @if (ton <= 0)
+                                {
+                                    <span class="badge bg-danger">Hết hàng - nhập ngay</span>
+                                }
+                                else if (ton <= muc)
+                                {
+                                    <span class="badge bg-warning text-dark">Sắp hết</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">Đủ hàng</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (coLichSu.Contains(item.Manguyenlieu.Trim()))
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled
+                                            title="Đã có trong phiếu nhập / xuất kho nên không xóa được">
+                                        <i class="bi bi-lock"></i> Đã có phiếu kho
+                                    </button>
+                                }
+                                else
+                                {
+                                    <form asp-action="XoaNguyenLieu" method="post" class="d-inline"
+                                          data-hoi="Xóa nguyên liệu @item.Tennguyenlieu?" onsubmit="return confirm(this.dataset.hoi);">
+                                        <input type="hidden" name="ma" value="@item.Manguyenlieu.Trim()" />
+                                        <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Xóa</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

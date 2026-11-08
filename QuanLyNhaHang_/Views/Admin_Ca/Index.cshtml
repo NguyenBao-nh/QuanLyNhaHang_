@@ -1,0 +1,190 @@
+﻿@model TrangCaViewModel
+@{
+    ViewData["Title"] = "Ca Làm Việc & Két";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    var ca = Model.CaDangMo;
+    var tk = Model.TongKet;
+    string Tien(long v) => v.ToString("N0") + " đ";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 style="color:#fa8f23"><i class="bi bi-safe"></i> Ca Làm Việc & Két Tiền</h2>
+        <a asp-action="LichSu" class="btn btn-outline-secondary"><i class="bi bi-clock-history"></i> Lịch sử ca / phiếu đóng ca</a>
+    </div>
+
+    @if (TempData["ThanhCongCa"] != null)
+    {
+        <div class="alert alert-success">@TempData["ThanhCongCa"]</div>
+    }
+    @if (TempData["LoiCa"] != null)
+    {
+        <div class="alert alert-danger">@TempData["LoiCa"]</div>
+    }
+
+    @if (ca == null)
+    {
+        @* ---------------- Chưa mở ca ---------------- *@
+        <div class="card shadow-sm" style="max-width:640px">
+            <div class="card-header bg-warning"><strong><i class="bi bi-unlock"></i> Mở ca</strong></div>
+            <div class="card-body">
+                <p class="text-muted">Chưa có ca nào đang mở. Thanh toán tại quán, chi tiêu, rút tiền chỉ làm được khi đã mở ca.</p>
+                @if (Model.CaTruoc != null)
+                {
+                    <p class="small">Ca trước: <strong>@Model.CaTruoc.Loaica @Model.CaTruoc.Ngay.ToString("dd/MM/yyyy")</strong>
+                        - két cuối ca @Tien(Model.CaTruoc.Tienthucte ?? Model.CaTruoc.Tienketcuoi ?? 0)
+                        (@Model.CaTruoc.Tennvdong).
+                        <form asp-action="MoLaiCa" method="post" class="d-inline"
+                              data-hoi="Mở lại ca @Model.CaTruoc.Loaica.ToLower() (@Model.CaTruoc.Maca.Trim()) để nhập thêm chi phí/thu chi?"
+                              onsubmit="return confirm(this.dataset.hoi);">
+                            <input type="hidden" name="ma" value="@Model.CaTruoc.Maca.Trim()" />
+                            <button type="submit" class="btn btn-sm btn-outline-primary ms-1">
+                                <i class="bi bi-unlock"></i> Mở lại ca này
+                            </button>
+                        </form>
+                    </p>
+                }
+                <form asp-action="MoCa" method="post">
+                    <label class="form-label">Ca</label>
+                    <div class="mb-3">
+                        @foreach (var lc in LoaiCa.TatCa)
+                        {
+                            bool daCo = Model.CaDaMoHomNay.Contains(lc);
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="LoaiCaChon" id="ca-@lc" value="@lc"
+                                       @(lc == Model.GoiYLoaiCa && !daCo ? "checked" : "") @(daCo ? "disabled" : "") required />
+                                <label class="form-check-label" for="ca-@lc">Ca @lc.ToLower() @(daCo ? "(đã có hôm nay)" : "")</label>
+                            </div>
+                        }
+                    </div>
+                    <label class="form-label">Tiền đầu ca (đếm tiền trong két)</label>
+                    <div class="input-group mb-3">
+                        <input type="number" name="TienDauCa" class="form-control" min="0" step="1000" required value="@Model.GoiYTienDauCa" />
+                        <span class="input-group-text">đ</span>
+                    </div>
+                    <button type="submit" class="btn btn-success"><i class="bi bi-play-circle"></i> Mở ca</button>
+                </form>
+            </div>
+        </div>
+    }
+    else
+    {
+        @* ---------------- Ca đang mở ---------------- *@
+        <div class="alert alert-info">
+            <strong>Ca @ca.Loaica.ToLower() @ca.Ngay.ToString("dd/MM/yyyy")</strong> (@ca.Maca.Trim()) đang mở từ @ca.Tgmo.ToString("HH:mm")
+            - nhân viên mở ca: <strong>@ca.Tennvmo</strong> (@ca.Manvmo?.Trim())
+        </div>
+
+        <div class="row gx-3">
+            <div class="col-xl-3 col-md-6">
+                <div class="card mb-3 border-primary"><div class="card-body">
+                    <div class="opacity-75">Tiền trong két hiện tại</div>
+                    <h2 class="m-0 text-primary">@Tien(tk!.TienKet)</h2>
+                    <small class="text-muted">= đầu ca + tiền mặt thu - chi tiêu - rút</small>
+                </div></div>
+            </div>
+            <div class="col-xl-9 col-md-6">
+                <div class="card mb-3"><div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr><td>Tiền đầu ca</td><td class="text-end">@Tien(tk.TienDauCa)</td></tr>
+                            <tr><td>+ Tiền mặt thu trong ca <small class="text-muted">(bán hàng @Tien(tk.ThuBanTienMat)@(tk.ThuBoiThuong > 0 ? ", bồi thường " + Tien(tk.ThuBoiThuong) : ""))</small></td><td class="text-end text-success">@Tien(tk.ThuTienMat)</td></tr>
+                            <tr><td>- Chi tiêu trong ca <small class="text-muted">(chi vặt @Tien(tk.ChiTieu), trả nhập kho @Tien(tk.TraNhapKho))</small></td><td class="text-end text-danger">@Tien(tk.TongChi)</td></tr>
+                            <tr><td>- Tiền rút khỏi két</td><td class="text-end text-danger">@Tien(tk.TienRut)</td></tr>
+                            <tr class="table-light"><td>Doanh thu ca (@tk.SoHoaDon hóa đơn): tiền mặt @Tien(tk.DoanhThuTienMat), chuyển khoản @Tien(tk.DoanhThuChuyenKhoan)</td>
+                                <td class="text-end fw-bold">@Tien(tk.DoanhThu)</td></tr>
+                        </tbody>
+                    </table>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="row gx-3">
+            <div class="col-xl-3 col-md-6">
+                <div class="card mb-3 border-success"><div class="card-body">
+                    <h5 class="text-success"><i class="bi bi-receipt"></i> Thu bồi thường</h5>
+                    <p class="small text-muted mb-2">Khách làm vỡ bát, hỏng đồ... <strong>không gắn hóa đơn nào</strong> (khách đã về / không đặt món). Nếu khoản bồi thường thuộc 1 hóa đơn đang phục vụ, hãy thêm ở nút "Thêm phụ phí" trong Chi tiết phiếu gọi món của bàn đó.</p>
+                    <form asp-action="ThuBoiThuong" method="post">
+                        <input type="number" name="SoTien" class="form-control mb-2" min="1000" step="1000" required placeholder="Số tiền (đ)" />
+                        <input type="text" name="NoiDung" class="form-control mb-2" maxlength="300" required placeholder="Lý do (VD: khách làm vỡ 2 bát)" />
+                        <button type="submit" class="btn btn-success w-100">Ghi thu bồi thường (cộng két)</button>
+                    </form>
+                </div></div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card mb-3"><div class="card-body">
+                    <h5><i class="bi bi-cart-dash"></i> Chi tiêu vặt</h5>
+                    <form asp-action="GhiTienRa" method="post">
+                        <input type="hidden" name="Loai" value="@LoaiGiaoDichKet.ChiTieu" />
+                        <input type="number" name="SoTien" class="form-control mb-2" min="1000" step="1000" required placeholder="Số tiền (đ)" />
+                        <input type="text" name="NoiDung" class="form-control mb-2" maxlength="300" required placeholder="Chi cho việc gì (mua đá, gas...)" />
+                        <button type="submit" class="btn btn-warning w-100">Ghi chi tiêu (trừ két)</button>
+                    </form>
+                </div></div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card mb-3"><div class="card-body">
+                    <h5><i class="bi bi-box-arrow-up-right"></i> Rút tiền khỏi két</h5>
+                    <form asp-action="GhiTienRa" method="post">
+                        <input type="hidden" name="Loai" value="@LoaiGiaoDichKet.RutTien" />
+                        <input type="number" name="SoTien" class="form-control mb-2" min="1000" step="1000" max="@tk.TienKet" required placeholder="Số tiền rút (đ)" />
+                        <input type="text" name="NoiDung" class="form-control mb-2" maxlength="300" placeholder="Ghi chú (két đầy, nộp quản lý...)" />
+                        <button type="submit" class="btn btn-secondary w-100">Rút tiền (trừ két)</button>
+                    </form>
+                </div></div>
+            </div>
+            <div class="col-xl-3 col-md-6">
+                <div class="card mb-3 border-danger"><div class="card-body">
+                    <h5 class="text-danger"><i class="bi bi-lock"></i> Đóng ca</h5>
+                    <form asp-action="DongCa" method="post" data-hoi="Đóng ca @ca.Loaica.ToLower() và in phiếu đóng ca?" onsubmit="return confirm(this.dataset.hoi);">
+                        <label class="form-label small">Tiền đếm thực tế trong két (không bắt buộc)</label>
+                        <input type="number" name="TienThucTe" class="form-control mb-2" min="0" step="1000" placeholder="Hệ thống: @tk.TienKet.ToString("N0")" />
+                        <input type="text" name="GhiChu" class="form-control mb-2" maxlength="300" placeholder="Ghi chú bàn giao ca" />
+                        <button type="submit" class="btn btn-danger w-100"><i class="bi bi-printer"></i> Đóng ca & in phiếu</button>
+                    </form>
+                </div></div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between">
+                <strong>Tiền vào / ra két trong ca</strong>
+                <a asp-action="PhieuDongCa" asp-route-ma="@ca.Maca.Trim()" target="_blank" class="small">Xem trước phiếu</a>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm table-striped align-middle">
+                    <thead class="table-dark">
+                        <tr><th>Giờ</th><th>Loại</th><th>Nội dung</th><th>Chứng từ</th><th class="text-end">Vào két</th><th class="text-end">Ra két</th><th></th></tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.GiaoDich.Any())
+                        {
+                            <tr><td colspan="7" class="text-center text-muted">Chưa có giao dịch tiền mặt nào trong ca.</td></tr>
+                        }
+                        @foreach (var g in Model.GiaoDich)
+                        {
+                            <tr>
+                                <td>@g.Thoigian.ToString("HH:mm")</td>
+                                <td><span class="badge @(g.LaTienVao ? "bg-success" : "bg-danger")">@LoaiGiaoDichKet.Ten(g.Loai)</span></td>
+                                <td>@g.Noidung</td>
+                                <td>@g.Machungtu</td>
+                                <td class="text-end text-success">@(g.LaTienVao ? g.Sotien.ToString("N0") : "")</td>
+                                <td class="text-end text-danger">@(g.LaTienVao ? "" : g.Sotien.ToString("N0"))</td>
+                                <td>
+                                    @if (g.Loai == LoaiGiaoDichKet.ChiTieu || g.Loai == LoaiGiaoDichKet.RutTien
+                                        || (g.Loai == LoaiGiaoDichKet.ThuBoiThuong && string.IsNullOrWhiteSpace(g.Machungtu)))
+                                    {
+                                        <form asp-action="XoaGiaoDich" method="post" class="d-inline" data-hoi="Xóa khoản ghi nhầm này?" onsubmit="return confirm(this.dataset.hoi);">
+                                            <input type="hidden" name="id" value="@g.Magd" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

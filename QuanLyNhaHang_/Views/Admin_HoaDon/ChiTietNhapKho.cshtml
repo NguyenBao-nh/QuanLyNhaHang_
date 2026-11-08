@@ -1,0 +1,102 @@
+﻿@model IEnumerable<QuanLyNhaHang_.Models.ChiTietNhapKhoViewModel>
+
+@{
+    ViewData["Title"] = "Chi Tiết Nhập Kho";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    var phieu = ViewBag.Phieu as PhieuNhapKho;
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-primary">Chi Tiết Phiếu Nhập Kho</h2>
+        <a href="@Url.Action("HienThiHoaDon", "Admin_HoaDon")" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Quay Lại Danh Sách
+        </a>
+    </div>
+
+    @if (phieu != null)
+    {
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3"><strong>Mã phiếu:</strong> @phieu.Manhapkho.Trim()</div>
+                    <div class="col-md-3"><strong>Ngày nhập:</strong> @phieu.Ngaynk?.ToString("dd/MM/yyyy HH:mm")</div>
+                    <div class="col-md-3">
+                        <strong>Nhân viên nhập:</strong>
+                        @(phieu.ManvNavigation?.Hoten ?? "-")
+                        @if (!string.IsNullOrWhiteSpace(phieu.Manv))
+                        {
+                            <span class="text-muted">(@phieu.Manv.Trim())</span>
+                        }
+                    </div>
+                    <div class="col-md-3"><strong>Tổng tiền:</strong> @((phieu.Tongtien ?? 0).ToString("N0")) đ</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover m-0">
+                    <thead class="bg-primary text-white text-center">
+                        <tr>
+                            <th>Mã Nhập Kho</th>
+                            <th>Mã Nguyên Liệu</th>
+                            <th>Tên Nguyên Liệu</th>
+                            <th>Số Lượng</th>
+                            <th>Thành Tiền</th>
+                            <th>Nhân Viên Nhập</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model == null || !Model.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-danger py-4">Không có chi tiết nào!</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr class="text-center">
+                                    <td>@item.MaNhapKho</td>
+                                    <td>@item.MaNguyenLieu</td>
+                                    <td>@item.TenNguyenLieu</td>
+                                    <td>@item.SoLuong</td>
+                                    <td>@String.Format("{0:N0} đ", item.ThanhTien)</td>
+                                    <td>@(phieu?.ManvNavigation?.Hoten ?? phieu?.Manv?.Trim() ?? "-")</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn {
+        font-size: 14px;
+    }
+
+    .table th, .table td {
+        vertical-align: middle;
+        text-align: center;
+        border: 1px solid #dee2e6;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    .bg-primary {
+        background-color: #007bff !important;
+    }
+
+    .text-primary {
+        font-weight: bold;
+    }
+</style>

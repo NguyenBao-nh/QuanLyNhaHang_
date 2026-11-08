@@ -1,0 +1,74 @@
+﻿@model IEnumerable<QuanLyNhaHang_.Models.PhieuXuatKho>
+@{
+    ViewData["Title"] = "Danh Sách Phiếu Xuất Kho";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-primary">Danh Sách Phiếu Xuất Kho</h2>
+        <a asp-action="ThemPhieuXuatKho" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Tạo Phiếu Xuất Kho Mới
+        </a>
+    </div>
+
+    @if (TempData["ThanhCong"] != null)
+    {
+        <div class="alert alert-success">@TempData["ThanhCong"]</div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped table-hover bg-white shadow-sm">
+            <thead class="bg-primary text-white text-center">
+                <tr>
+                    <th>Mã Xuất Kho</th>
+                    <th>Mã Nhân Viên</th>
+                    <th>Ngày Xuất Kho</th>
+                    <th>Tổng Tiền</th>
+                    <th>Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model == null || !Model.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-danger py-3">Không có phiếu xuất kho nào!</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr class="text-center">
+                            <td class="fw-bold">@item.Maxuatkho</td>
+                            <td>@item.Manv</td>
+                            <td>@(item.Ngayxk.HasValue ? item.Ngayxk.Value.ToString("dd/MM/yyyy") : "")</td>
+                            <td class="text-end">@String.Format("{0:N0} đ", item.Tongtien ?? 0)</td>
+                            <td>
+                                <a asp-action="chitietXuatKho" asp-route-maXuatKho="@item.Maxuatkho" class="btn btn-info btn-sm text-white">
+                                    <i class="bi bi-eye"></i> Chi Tiết
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+    .table th, .table td {
+        vertical-align: middle;
+        border: 1px solid #dee2e6;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: #f1f1f1;
+    }
+
+    .text-primary {
+        font-weight: bold;
+        color: #0d6efd !important;
+    }
+</style>

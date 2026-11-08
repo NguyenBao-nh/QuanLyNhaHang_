@@ -1,0 +1,22 @@
+﻿@model List<QuanLyNhaHang_.Models.GioHang>
+
+<aside>
+    <div id="box_aside" style="display: none;">
+        <div class="giohang_index" style="width: 900px; max-width: 100%; height: 100%; overflow-y: auto;">
+            <div>
+                <div class="text_gh_index" style="margin: 20px; display: flex; justify-content: space-between; align-items: center;">
+                    <div><h2>Giỏ hàng</h2></div>
+                    <div>
+                        <i class="fa-solid fa-xmark" onclick="hide()" id="close" style="font-size: 28px; cursor: pointer;"></i>
+                    </div>
+                </div>
+                <div id="box_ic_vc" style="margin-left: 25px"></div>
+            </div>
+            <hr />
+
+            <div id="cart-container">
+                <partial name="~/Views/GioHang/CartItemsPartial.cshtml" model="Model" />
+            </div>
+        </div>
+    </div>
+</aside>

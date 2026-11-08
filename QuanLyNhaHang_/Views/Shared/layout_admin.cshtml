@@ -1,0 +1,229 @@
+﻿@{
+    Layout = null;
+
+    // Xác định mục đang mở để tô sáng trên sidebar
+    string ctl = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+    string act = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    string Cur(string c, string? a = null) =>
+        string.Equals(ctl, c, StringComparison.OrdinalIgnoreCase) &&
+        (a == null || string.Equals(act, a, StringComparison.OrdinalIgnoreCase)) ? "active current-page" : "";
+
+    string tenNguoiDung = Context.Session.GetString("HoTen") ?? "Quản trị";
+    bool laQuanLy = QuanLyNhaHang_.Services.PhanQuyen.LaQuanLy(Context);
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - Quản trị FREEDOM</title>
+
+    <!-- Meta -->
+    <meta name="description" content="Admin Dashboard" />
+    <link rel="shortcut icon" href="/assets_admin/images/favicon.svg" />
+
+    <!-- ************* CSS Files ************* -->
+    <link rel="stylesheet" href="/assets_admin/fonts/bootstrap/bootstrap-icons.css" />
+    <link rel="stylesheet" href="/assets_admin/css/main.min.css" />
+
+    <!-- ************* Vendor Css Files ************* -->
+    <link rel="stylesheet" href="/assets_admin/vendor/overlay-scroll/OverlayScrollbars.min.css" />
+    <style>
+            /* Chấm đỏ có số trên thanh menu (đặt bàn, bàn đang dùng, đánh giá, đơn trực tuyến) */
+            .huy-hieu-menu {
+                display: inline-flex; align-items: center; justify-content: center;
+                min-width: 20px; height: 20px; padding: 0 6px; margin-left: auto;
+                border-radius: 10px; background: #dc3545; color: #fff;
+                font-size: 11px; font-weight: 700; line-height: 1;
+                box-shadow: 0 0 0 2px rgba(255,255,255,.85);
+            }
+            .sidebar-menu a .huy-hieu-menu { margin-left: auto; }
+            a:has(> .huy-hieu-menu) { display: flex; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <!-- Page wrapper starts -->
+    <div class="page-wrapper">
+
+        <!-- Main container starts -->
+        <div class="main-container">
+
+            <!-- Sidebar wrapper starts -->
+            <nav id="sidebar" class="sidebar-wrapper">
+
+                <!-- App brand starts -->
+                <div class="app-brand p-3 mb-3">
+                    <a asp-controller="Admin" asp-action="HienThiAdmin">
+                        <img src="/assets_admin/images/logo.svg" class="logo" alt="AdminLite Template" />
+                    </a>
+                </div>
+                <!-- App brand ends -->
+                <!-- Sidebar menu starts -->
+                <div class="sidebarMenuScroll">
+                    <ul class="sidebar-menu">
+                        <li class="@Cur("Admin", "HienThiAdmin")">
+                            <a asp-controller="Admin" asp-action="HienThiAdmin"><i class="bi bi-grid-1x2"></i><span class="menu-text">Tổng quan</span></a>
+                        </li>
+                        @if (laQuanLy)
+                        {
+                            @* Tài khoản quản lý: chỉ Doanh thu, Nhân viên, Món ăn, Mã giảm giá, Đánh giá *@
+                            <li class="@Cur("Admin_DoanhThu")">
+                                <a asp-controller="Admin_DoanhThu" asp-action="Index"><i class="bi bi-graph-up-arrow"></i><span class="menu-text">Doanh thu</span></a>
+                            </li>
+                            <li class="@Cur("Admin_NhanVien")">
+                                <a asp-controller="Admin_NhanVien" asp-action="Index"><i class="bi bi-people"></i><span class="menu-text">Nhân viên</span></a>
+                            </li>
+                            <li class="@Cur("Admin_MonAn")">
+                                <a asp-controller="Admin_MonAn" asp-action="DanhSachMonAn"><i class="bi bi-cup-hot"></i><span class="menu-text">Món ăn</span></a>
+                            </li>
+                            <li class="@Cur("Admin_GiamGia")">
+                                <a asp-controller="Admin_GiamGia" asp-action="HienThiMaGiamGia"><i class="bi bi-tag"></i><span class="menu-text">Mã giảm giá</span></a>
+                            </li>
+                            <li class="@Cur("DanhGia")">
+                                <a asp-controller="DanhGia" asp-action="ShowDanhGia"><i class="bi bi-star"></i><span class="menu-text">Đánh giá</span>@await Component.InvokeAsync("HuyHieuMenu", new { loai = "DanhGia" })</a>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="@Cur("Admin_MonAn")">
+                                <a asp-controller="Admin_MonAn" asp-action="DanhSachMonAn"><i class="bi bi-cup-hot"></i><span class="menu-text">Món ăn (xem)</span></a>
+                            </li>
+                            <li class="@Cur("QuanLyBan")">
+                                <a asp-controller="QuanLyBan" asp-action="ShowBan"><i class="bi bi-table"></i><span class="menu-text">Quản lý bàn</span>@await Component.InvokeAsync("HuyHieuMenu", new { loai = "BanDangDung" })</a>
+                            </li>
+                            <li class="@Cur("PhieuGoiMon")">
+                                <a asp-controller="PhieuGoiMon" asp-action="DanhSachPhieuGoiMon"><i class="bi bi-journal-text"></i><span class="menu-text">Phiếu gọi món</span></a>
+                            </li>
+                            <li class="@Cur("Admin_DatBan")">
+                                <a asp-controller="Admin_DatBan" asp-action="DatBan"><i class="bi bi-calendar-check"></i><span class="menu-text">Khách đặt bàn</span>@await Component.InvokeAsync("HuyHieuMenu", new { loai = "DatBan" })</a>
+                            </li>
+                            <li class="@Cur("Admin_DonTrucTuyen")">
+                                <a asp-controller="Admin_DonTrucTuyen" asp-action="DanhSach"><i class="bi bi-globe2"></i><span class="menu-text">Người mua trực tuyến</span>@await Component.InvokeAsync("HuyHieuMenu", new { loai = "DonTrucTuyen" })</a>
+                            </li>
+                            <li class="@Cur("NhaHang")">
+                                <a asp-controller="NhaHang" asp-action="ShowHD"><i class="bi bi-receipt"></i><span class="menu-text">Hóa đơn bán hàng</span></a>
+                            </li>
+                            <li class="@Cur("Admin_NguyenLieu")">
+                                <a asp-controller="Admin_NguyenLieu" asp-action="HienThiNguyenLieu"><i class="bi bi-basket"></i><span class="menu-text">Nguyên liệu</span></a>
+                            </li>
+                            <li class="@Cur("Admin_HoaDon")">
+                                <a asp-controller="Admin_HoaDon" asp-action="HienThiHoaDon"><i class="bi bi-box-arrow-in-down"></i><span class="menu-text">Nhập kho</span></a>
+                            </li>
+                            <li class="@Cur("Admin_XuatKho")">
+                                <a asp-controller="Admin_XuatKho" asp-action="HienThiXuatKho"><i class="bi bi-box-arrow-up"></i><span class="menu-text">Xuất kho</span></a>
+                            </li>
+                            <li class="@Cur("Admin_Ca")">
+                                <a asp-controller="Admin_Ca" asp-action="Index"><i class="bi bi-safe"></i><span class="menu-text">Ca làm việc & két</span></a>
+                            </li>
+                            <li class="@Cur("Admin_Quy")">
+                                <a asp-controller="Admin_Quy" asp-action="Index"><i class="bi bi-wallet2"></i><span class="menu-text">Quỹ</span></a>
+                            </li>
+                            <li class="@Cur("Admin_GiamGia")">
+                                <a asp-controller="Admin_GiamGia" asp-action="HienThiMaGiamGia"><i class="bi bi-tag"></i><span class="menu-text">Mã giảm giá (xem)</span></a>
+                            </li>
+                        }
+                        <li>
+                            <a asp-controller="Account" asp-action="Welcome"><i class="bi bi-globe"></i><span class="menu-text">Xem trang khách hàng</span></a>
+                        </li>
+                    </ul>
+                </div>
+                <!-- Sidebar menu ends -->
+
+            </nav>
+            <!-- Sidebar wrapper ends -->
+            <!-- App container starts -->
+            <div class="app-container">
+
+                <!-- App header starts -->
+                <div class="app-header d-flex align-items-center">
+                    <div class="d-flex">
+                        <button class="pin-sidebar">
+                            <i class="bi bi-list lh-1"></i>
+                        </button>
+                    </div>
+
+                    <div class="app-brand-sm d-lg-none d-flex">
+                        <a asp-controller="Admin" asp-action="HienThiAdmin">
+                            <img src="/assets_admin/images/logo-sm.svg" class="logo" alt="AdminLite Template" />
+                        </a>
+                    </div>
+
+                    <!-- App header actions starts -->
+                    <div class="header-actions">
+                        <div class="dropdown ms-4">
+                            <a id="userSettings" class="dropdown-toggle d-flex py-2 align-items-center" href="#!" role="button"
+                               data-bs-toggle="dropdown" aria-expanded="false">
+                                <img src="/assets_admin/images/user3.png" class="rounded-4 img-3x" alt="Admin Avatar" />
+                                <div class="ms-2 text-truncate d-lg-flex flex-column d-none">
+                                    <p class="text-truncate m-0">@tenNguoiDung</p>
+                                    <span class="small opacity-50 lh-1">@(laQuanLy ? "Quản lý" : "Nhân viên")</span>
+                                </div>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end shadow-lg">
+                                <div class="mx-3 mt-2 d-grid">
+                                    <a asp-controller="Account" asp-action="Logout" class="btn btn-primary">Đăng xuất</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- App header actions ends -->
+                </div>
+                <!-- App header ends -->
+                <!-- App body starts -->
+                <div class="app-body">
+                    <!-- Nơi đổ nội dung của HienThiAdmin.cshtml hoặc NhapKho.cshtml vào -->
+                    @* Cảnh báo nguyên liệu tồn thấp - hiện trên mọi trang admin *@
+                    @if (!laQuanLy)
+                    {
+                        @await Component.InvokeAsync("CanhBaoTonKho")
+                    }
+                    @RenderBody()
+                </div>
+                <!-- App body ends -->
+               
+
+            </div>
+            <!-- App container ends -->
+
+        </div>
+        <!-- Main container ends -->
+
+    </div>
+    <!-- Page wrapper ends -->
+    <!-- ************* JavaScript Files ************* -->
+    <script src="/assets_admin/js/jquery.min.js"></script>
+    <script src="/assets_admin/js/bootstrap.bundle.min.js"></script>
+    <script src="/assets_admin/js/moment.min.js"></script>
+
+    <!-- Overlay Scroll JS -->
+    <script src="/assets_admin/vendor/overlay-scroll/jquery.overlayScrollbars.min.js"></script>
+    <script src="/assets_admin/vendor/overlay-scroll/custom-scrollbar.js"></script>
+
+    <!-- Custom JS files -->
+    <script src="/assets_admin/js/custom.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <script>
+            // Chống bấm gửi form 2 lần (tạo trùng phiếu / hóa đơn): khóa nút submit sau lần bấm đầu.
+            // Form bị hủy bởi confirm() (defaultPrevented) thì không khóa.
+            document.addEventListener('submit', function (e) {
+                var form = e.target;
+                if (e.defaultPrevented || (form.method || '').toLowerCase() !== 'post') return;
+                if (form.dataset.dangGui === '1') { e.preventDefault(); return; }
+                form.dataset.dangGui = '1';
+                // Chỉ khóa (và sau đó mở lại) đúng các nút submit đang bật - không đụng tới ô bị khóa sẵn
+                var nut = Array.prototype.filter.call(
+                    form.querySelectorAll('button[type="submit"], input[type="submit"], button:not([type])'),
+                    function (b) { return !b.disabled; });
+                setTimeout(function () { nut.forEach(function (b) { b.disabled = true; }); }, 0);
+                // Lỗi mạng / quay lại trang (Back) -> mở khóa sau 8 giây
+                setTimeout(function () {
+                    form.dataset.dangGui = '';
+                    nut.forEach(function (b) { b.disabled = false; });
+                }, 8000);
+            });
+    </script>
+</body>
+</html>

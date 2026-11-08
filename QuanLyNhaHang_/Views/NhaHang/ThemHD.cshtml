@@ -1,0 +1,41 @@
+﻿@{
+    ViewData["Title"] = "Thêm Hóa Đơn";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+}
+
+<div class="container mt-4" style="max-width: 600px">
+    <h2 class="text-center mb-4" style="color: #fa8f23">Thêm Hóa Đơn</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <form asp-action="ThemHD" asp-controller="NhaHang" method="post">
+        <div class="mb-3">
+            <label class="form-label">Mã hóa đơn</label>
+            <input type="text" class="form-control" value="@ViewBag.MaHD" disabled />
+            <input type="hidden" name="MaHD" value="@ViewBag.MaHD" />
+        </div>
+        <div class="mb-3">
+            <label for="MaNV" class="form-label">Mã nhân viên</label>
+            <input type="text" id="MaNV" name="MaNV" class="form-control" value="@Context.Session.GetString("MaNV")" />
+        </div>
+        <div class="mb-3">
+            <label for="MaKH" class="form-label">Mã khách hàng</label>
+            <input type="text" id="MaKH" name="MaKH" class="form-control" required />
+        </div>
+        <div class="mb-3">
+            <label for="NgayLap" class="form-label">Ngày lập</label>
+            <input type="date" id="NgayLap" name="NgayLap" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+        </div>
+        <div class="d-flex justify-content-between">
+            <a asp-action="ShowHD" class="btn btn-secondary">Quay lại</a>
+            <button type="submit" class="btn btn-primary">Thêm hóa đơn</button>
+        </div>
+    </form>
+</div>

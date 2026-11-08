@@ -1,0 +1,401 @@
+﻿@model List<QuanLyNhaHang_.Models.DanhGia>
+@using QuanLyNhaHang_.Models
+@using QuanLyNhaHang_.Services
+@{
+    ViewData["Title"] = "Đánh giá của khách";
+    Layout = "~/Views/Shared/layout_user.cshtml";
+}
+@{
+    ViewData["Title"] = "Đánh giá";
+
+    var thongKe = ViewBag.ThongKe as Dictionary<string, (int SoLuong, double TrungBinh)>
+                  ?? new Dictionary<string, (int SoLuong, double TrungBinh)>();
+    var phanBoSao = ViewBag.PhanBoSao as Dictionary<int, int> ?? new Dictionary<int, int>();
+    var nguoiDanhGia = ViewBag.NguoiDanhGia as Dictionary<string, (string Ten, string? Avatar)>
+                       ?? new Dictionary<string, (string Ten, string? Avatar)>();
+    var dsMonAn = ViewBag.DsMonAn as List<MonAn> ?? new List<MonAn>();
+    var dsNhanVien = ViewBag.DsNhanVien as List<NhanVien> ?? new List<NhanVien>();
+
+    int tongSo = Convert.ToInt32(ViewBag.TongSo ?? 0);
+    double tbChung = Convert.ToDouble(ViewBag.TrungBinhChung ?? 0);
+    string? loaiDangLoc = ViewBag.Loai as string;
+    bool daDangNhap = ViewBag.DaDangNhap is bool b && b;
+    string? maTaiKhoan = ViewBag.MaTaiKhoan as string;
+    string? maMoi = TempData["DanhGiaMoi"] as string;   // đánh giá vừa gửi -> tô sáng + cuộn tới
+    int tongCoSao = phanBoSao.Values.Sum();
+
+    // Thư mục chứa ảnh đại diện khách hàng — chỉnh lại nếu project của bạn lưu chỗ khác
+    const string thuMucAvatar = "/Images/Avatar/";
+}
+
+@functions {
+    string TenLoai(string? l)
+    {
+        if (l == LoaiDanhGia.MonAn) return "Món ăn";
+        if (l == LoaiDanhGia.NhanVien) return "Nhân viên";
+        return "Nhà hàng";
+    }
+
+    string ChuoiSao(double soSao)
+    {
+        int day = (int)Math.Round(soSao);
+        return new string('★', day) + new string('☆', 5 - day);
+    }
+}
+
+<style>
+    .dg-sao {
+        color: #f5a623;
+        letter-spacing: 2px;
+    }
+
+    .dg-sao-xam {
+        color: #ccc;
+    }
+
+    .dg-the {
+        border: 1px solid #e5e5e5;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 14px;
+        background: #fff;
+    }
+
+    .dg-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .dg-avatar-chu {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: #8b5e3c;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+    }
+
+    .dg-moi {
+        border-color: #f5a623;
+        box-shadow: 0 0 0 3px rgba(245, 166, 35, .25);
+    }
+
+    .dg-phanhoi {
+        margin-top: 10px;
+        padding: 10px 14px;
+        background: #fff8ec;
+        border-left: 4px solid #f5a623;
+        border-radius: 6px;
+    }
+
+    .dg-anh {
+        max-width: 220px;
+        max-height: 220px;
+        border-radius: 8px;
+        margin-top: 8px;
+        cursor: pointer;
+    }
+
+    .dg-thanh {
+        height: 8px;
+        background: #eee;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+        .dg-thanh > div {
+            height: 100%;
+            background: #f5a623;
+        }
+
+    .chon-sao {
+        display: inline-flex;
+        flex-direction: row-reverse;
+    }
+
+        .chon-sao {
+            position: relative;
+        }
+
+        .chon-sao input {
+            position: absolute;
+            opacity: 0;
+            width: 1px;
+            height: 1px;
+            left: 50%;
+            bottom: 0;
+        }
+
+        .chon-sao label {
+            font-size: 28px;
+            color: #ccc;
+            cursor: pointer;
+            padding: 0 2px;
+        }
+
+            .chon-sao input:checked ~ label,
+            .chon-sao label:hover,
+            .chon-sao label:hover ~ label {
+                color: #f5a623;
+            }
+</style>
+
+<div class="container my-4">
+    <h2 class="mb-3">Đánh giá của khách hàng</h2>
+
+    @if (TempData["ThongBao"] != null)
+    {
+        <div class="alert alert-success">@TempData["ThongBao"]</div>
+    }
+    @if (TempData["ThongBaoLoi"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ThongBaoLoi"]</div>
+    }
+
+    <!-- ===================== THỐNG KÊ ===================== -->
+    <div class="row mb-4">
+        <div class="col-md-4 text-center">
+            <div style="font-size:48px;font-weight:700">@tbChung.ToString("0.0")</div>
+            <div class="dg-sao" style="font-size:22px">@ChuoiSao(tbChung)</div>
+            <div class="text-muted">@tongSo đánh giá</div>
+        </div>
+        <div class="col-md-8">
+            @for (int s = 5; s >= 1; s--)
+            {
+                int soLuong = phanBoSao.TryGetValue(s, out var sl) ? sl : 0;
+                int phanTram = tongCoSao == 0 ? 0 : soLuong * 100 / tongCoSao;
+                <div class="d-flex align-items-center mb-1">
+                    <span style="width:40px">@s ★</span>
+                    <div class="dg-thanh flex-grow-1 mx-2"><div style="width:@phanTram%"></div></div>
+                    <span style="width:30px" class="text-end">@soLuong</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- ===================== LỌC THEO LOẠI ===================== -->
+    <ul class="nav nav-pills mb-3">
+        <li class="nav-item">
+            <a class="nav-link @(string.IsNullOrEmpty(loaiDangLoc) ? "active" : "")"
+               asp-action="Index">Tất cả (@tongSo)</a>
+        </li>
+        @foreach (var l in LoaiDanhGia.TatCa)
+        {
+            var tk = thongKe.TryGetValue(l, out var v) ? v : (0, 0);
+            <li class="nav-item">
+                <a class="nav-link @(loaiDangLoc == l ? "active" : "")"
+                   asp-action="Index" asp-route-loai="@l">
+                    @TenLoai(l) (@tk.Item1@(tk.Item2 > 0 ? $" · {tk.Item2:0.0}★" : ""))
+                </a>
+            </li>
+        }
+    </ul>
+
+    <!-- ===================== FORM VIẾT ĐÁNH GIÁ ===================== -->
+    @if (daDangNhap)
+    {
+        <div class="dg-the">
+            <h5>Viết đánh giá của bạn</h5>
+            <form asp-action="Them" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+
+                <div class="row g-2 mb-2">
+                    <div class="col-md-4">
+                        <label class="form-label">Đánh giá cho</label>
+                        <select name="Loaidanhgia" id="chonLoai" class="form-control no-nice" required>
+                            @foreach (var l in LoaiDanhGia.TatCa)
+                            {
+                                <option value="@l" selected="@(l == (loaiDangLoc ?? LoaiDanhGia.NhaHang))">@TenLoai(l)</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-8" id="khungMonAn" style="display:none">
+                        <label class="form-label">Món ăn</label>
+                        <select name="Mamonan" id="chonMonAn" class="form-control no-nice">
+                            <option value="">-- Chọn món ăn --</option>
+                            @foreach (var m in dsMonAn)
+                            {
+                                <option value="@m.Mamonan?.Trim()">@m.Tenmon</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-8" id="khungNhanVien" style="display:none">
+                        <label class="form-label">Nhân viên</label>
+                        <select name="Manv" id="chonNhanVien" class="form-control no-nice">
+                            <option value="">-- Chọn nhân viên --</option>
+                            @foreach (var n in dsNhanVien)
+                            {
+                                <option value="@n.Manv?.Trim()">@n.Hoten</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label d-block">Số sao</label>
+                    <div class="chon-sao">
+                        @for (int s = 5; s >= 1; s--)
+                        {
+                            <input type="radio" id="sao@(s)" name="Sosao" value="@s" required />
+                            <label for="sao@(s)" title="@s sao">★</label>
+                        }
+                    </div>
+                </div>
+
+                <div class="mb-2">
+                    <textarea name="Noidung" class="form-control" rows="3" maxlength="1000"
+                              placeholder="Chia sẻ cảm nhận của bạn..." required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Ảnh (không bắt buộc, tối đa 5 MB)</label>
+                    <input type="file" name="HinhAnh" class="form-control" accept=".jpg,.jpeg,.png,.webp,.gif" />
+                </div>
+
+                <button type="submit" class="btn btn-primary">Gửi đánh giá</button>
+            </form>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            Vui lòng <a asp-controller="Account" asp-action="DangNhap">đăng nhập</a> để viết đánh giá.
+        </div>
+    }
+
+    <!-- ===================== DANH SÁCH ĐÁNH GIÁ ===================== -->
+    @if (!Model.Any())
+    {
+        <p class="text-muted">Chưa có đánh giá nào.</p>
+    }
+
+    @foreach (var d in Model)
+    {
+        // Người đánh giá (đánh giá cũ không có tài khoản -> "Khách hàng")
+        var maTK = d.Mataikhoan?.Trim();
+        string ten = "Khách hàng";
+        string? avatar = null;
+        if (!string.IsNullOrEmpty(maTK) && nguoiDanhGia.TryGetValue(maTK, out var info))
+        {
+            ten = info.Ten;
+            avatar = info.Avatar?.Trim();
+        }
+
+        // Đối tượng được đánh giá
+        var loai = d.Loaidanhgia?.Trim() ?? LoaiDanhGia.NhaHang;
+        string doiTuong = TenLoai(loai);
+        if (loai == LoaiDanhGia.MonAn && d.MamonanNavigation != null)
+            doiTuong += ": " + d.MamonanNavigation.Tenmon;
+        else if (loai == LoaiDanhGia.NhanVien && d.ManvNavigation != null)
+            doiTuong += ": " + d.ManvNavigation.Hoten;
+
+        bool laMoi = !string.IsNullOrEmpty(maMoi) && d.Madanhgia?.Trim() == maMoi;
+        <div class="dg-the @(laMoi ? "dg-moi" : "")" id="dg-@d.Madanhgia?.Trim()">
+            <div class="d-flex align-items-center mb-2">
+                @if (!string.IsNullOrEmpty(avatar))
+                {
+                    var src = avatar.StartsWith("http") || avatar.StartsWith("/") ? avatar : thuMucAvatar + avatar;
+                    <img src="@src" class="dg-avatar me-2" alt="@ten" />
+                }
+                else
+                {
+                    <div class="dg-avatar-chu me-2">@(ten.Length > 0 ? ten.Substring(0, 1).ToUpper() : "?")</div>
+                }
+
+                <div class="flex-grow-1">
+                    <strong>@ten</strong>
+                    <div class="small text-muted">
+                        @doiTuong
+                        @if (d.Ngaydanhgia != null)
+                        {
+                            <span> · @d.Ngaydanhgia.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                        }
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(maTaiKhoan) && maTK == maTaiKhoan)
+                {
+                    <form asp-action="XoaCuaToi" method="post"
+                          onsubmit="return confirm('Bạn chắc chắn muốn xóa đánh giá này?');">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@d.Madanhgia?.Trim()" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
+                    </form>
+                }
+            </div>
+
+            @if (d.Sosao is int sao)
+            {
+                <div class="mb-1">
+                    <span class="dg-sao">@(new string('★', sao))</span><span class="dg-sao-xam">@(new string('★', 5 - sao))</span>
+                </div>
+            }
+            else
+            {
+                <div class="mb-1 small text-muted">(Chưa chấm sao)</div>
+            }
+
+            <p class="mb-0" style="white-space:pre-line">@d.Danhgia</p>
+
+            @if (!string.IsNullOrWhiteSpace(d.Hinhanh))
+            {
+                var anh = Url.Content("~/Images/DanhGia/" + d.Hinhanh.Trim());
+                <a href="@anh" target="_blank"><img src="@anh" class="dg-anh" alt="Ảnh đánh giá" /></a>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(d.Phanhoi))
+            {
+                <div class="dg-phanhoi">
+                    <div class="small fw-bold mb-1">
+                        ↳ Phản hồi từ nhà hàng FREEDOM
+                        @if (d.Ngayphanhoi != null)
+                        {
+                            <span class="fw-normal text-muted"> · @d.Ngayphanhoi.Value.ToString("dd/MM/yyyy HH:mm")</span>
+                        }
+                    </div>
+                    <p class="mb-0" style="white-space:pre-line">@d.Phanhoi</p>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<script>
+    (function () {
+        // Cuộn tới đánh giá vừa gửi
+        var moi = document.querySelector('.dg-moi');
+        if (moi) moi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        var chon = document.getElementById('chonLoai');
+        if (!chon) return;
+        var monAn = document.getElementById('khungMonAn');
+        var nhanVien = document.getElementById('khungNhanVien');
+        var selMon = document.getElementById('chonMonAn');
+        var selNV = document.getElementById('chonNhanVien');
+        function capNhat() {
+            var laMon = chon.value === '@LoaiDanhGia.MonAn';
+            var laNV = chon.value === '@LoaiDanhGia.NhanVien';
+            monAn.style.display = laMon ? '' : 'none';
+            nhanVien.style.display = laNV ? '' : 'none';
+            // Bắt buộc chọn món / nhân viên khi đánh giá loại đó
+            selMon.required = laMon;
+            selNV.required = laNV;
+        }
+        chon.addEventListener('change', capNhat);
+        capNhat();
+
+        // Báo rõ khi chưa chọn sao (thay vì form đứng im)
+        var form = chon.form;
+        form.addEventListener('submit', function (e) {
+            if (!form.querySelector('input[name="Sosao"]:checked')) {
+                e.preventDefault();
+                alert('Vui lòng chọn số sao (1 - 5) trước khi gửi đánh giá.');
+            }
+        });
+    })();
+</script>

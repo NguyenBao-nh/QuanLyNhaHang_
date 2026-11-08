@@ -1,0 +1,135 @@
+﻿@model IEnumerable<DanhGia>
+@{
+    ViewData["Title"] = "Đánh giá của khách";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    string? loc = ViewBag.Loc as string;
+    int soChuaTraLoi = ViewBag.SoChuaTraLoi is int c ? c : 0;
+    var tenNV = ViewBag.TenNVPhanHoi as Dictionary<string, string> ?? new Dictionary<string, string>();
+}
+
+<h2 class="text-center my-4 text-uppercase" style="color: #fa8f23">Đánh Giá Của Khách Hàng</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="btn-group">
+        <a asp-action="ShowDanhGia" class="btn @(loc == "chuatraloi" ? "btn-outline-secondary" : "btn-secondary")">Tất cả</a>
+        <a asp-action="ShowDanhGia" asp-route-loc="chuatraloi" class="btn @(loc == "chuatraloi" ? "btn-warning" : "btn-outline-warning")">
+            Chưa trả lời <span class="badge bg-danger">@soChuaTraLoi</span>
+        </a>
+    </div>
+    <a asp-action="Index" asp-controller="DanhGia" target="_blank" class="btn btn-outline-primary">
+        <i class="bi bi-box-arrow-up-right"></i> Xem trang Đánh giá công khai
+    </a>
+</div>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover align-middle">
+                <thead class="table-dark text-center">
+                    <tr>
+                        <th>Mã</th>
+                        <th>Ngày</th>
+                        <th>Tài khoản</th>
+                        <th>Đối tượng</th>
+                        <th>Số sao</th>
+                        <th>Nội dung</th>
+                        <th>Ảnh</th>
+                        <th style="min-width:300px">Trả lời của nhà hàng</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model == null || !Model.Any())
+                    {
+                        <tr><td colspan="9" class="text-center text-muted">@(loc == "chuatraloi" ? "Không còn đánh giá nào chưa trả lời." : "Chưa có đánh giá nào.")</td></tr>
+                    }
+                    else
+                    {
+                        foreach (var item in Model)
+                        {
+                            string doiTuong = item.Loaidanhgia?.Trim() switch
+                            {
+                                LoaiDanhGia.MonAn => "Món: " + (item.MamonanNavigation?.Tenmon ?? item.Mamonan?.Trim()),
+                                LoaiDanhGia.NhanVien => "NV: " + (item.ManvNavigation?.Hoten ?? item.Manv?.Trim()),
+                                LoaiDanhGia.NhaHang => "Nhà hàng",
+                                _ => string.IsNullOrWhiteSpace(item.Mahoadon) ? "-" : "Hóa đơn " + item.Mahoadon.Trim()
+                            };
+                            <tr>
+                                <td class="text-center">@item.Madanhgia.Trim()</td>
+                                <td class="text-center">@item.Ngaydanhgia?.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="text-center">@(item.MataikhoanNavigation?.Tendangnhap ?? item.Mataikhoan?.Trim())</td>
+                                <td>@doiTuong</td>
+                                <td class="text-center text-warning text-nowrap">
+                                    @if (item.Sosao.HasValue)
+                                    {
+                                        for (int i = 1; i <= 5; i++)
+                                        {
+                                            <i class="bi @(i <= item.Sosao ? "bi-star-fill" : "bi-star")"></i>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td style="max-width:320px; white-space:pre-line">@item.Danhgia</td>
+                                <td class="text-center">
+                                    @if (!string.IsNullOrEmpty(item.Hinhanh))
+                                    {
+                                        <a href="/Images/DanhGia/@item.Hinhanh.Trim()" target="_blank">
+                                            <img src="/Images/DanhGia/@item.Hinhanh.Trim()" style="width:60px;height:60px;object-fit:cover;border-radius:6px" alt="Ảnh" />
+                                        </a>
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        bool daTraLoi = !string.IsNullOrWhiteSpace(item.Phanhoi);
+                                        string idForm = "tl-" + item.Madanhgia.Trim();
+                                    }
+                                    @if (daTraLoi)
+                                    {
+                                        <div class="p-2 mb-2 rounded" style="background:#fff8ec;border-left:4px solid #f5a623;white-space:pre-line">@item.Phanhoi</div>
+                                        <div class="small text-muted mb-2">
+                                            @item.Ngayphanhoi?.ToString("dd/MM/yyyy HH:mm")
+                                            @if (!string.IsNullOrWhiteSpace(item.Manvphanhoi))
+                                            {
+                                                <span> · @(tenNV.TryGetValue(item.Manvphanhoi.Trim(), out var tnv) ? tnv : item.Manvphanhoi.Trim())</span>
+                                            }
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#@idForm">
+                                            <i class="bi bi-pencil"></i> Sửa
+                                        </button>
+                                        <form asp-action="XoaTraLoi" method="post" class="d-inline" data-hoi="Gỡ câu trả lời này?" onsubmit="return confirm(this.dataset.hoi);">
+                                            <input type="hidden" name="id" value="@item.Madanhgia.Trim()" />
+                                            <input type="hidden" name="loc" value="@loc" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Gỡ</button>
+                                        </form>
+                                    }
+                                    <form asp-action="TraLoi" method="post" id="@idForm" class="@(daTraLoi ? "collapse mt-2" : "")">
+                                        <input type="hidden" name="id" value="@item.Madanhgia.Trim()" />
+                                        <input type="hidden" name="loc" value="@loc" />
+                                        <textarea name="PhanHoi" class="form-control form-control-sm mb-1" rows="2" maxlength="1000" required
+                                                  placeholder="Nhập câu trả lời cho khách...">@item.Phanhoi</textarea>
+                                        <button type="submit" class="btn btn-sm btn-success"><i class="bi bi-reply"></i> @(daTraLoi ? "Lưu" : "Trả lời")</button>
+                                    </form>
+                                </td>
+                                <td class="text-center">
+                                    <a asp-action="Delete" asp-route-id="@item.Madanhgia.Trim()" class="btn btn-sm btn-danger">Xóa</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,142 @@
+﻿@model List<MonAn>
+@{
+    ViewData["Title"] = "Menu";
+    Layout = "~/Views/Shared/layout_user.cshtml";
+}
+
+<!-- Start Page Title Area -->
+<div class="page-title-area">
+    <div class="d-table">
+        <div class="d-table-cell">
+            <div class="container">
+                <div class="page-title-content">
+                    <h2>Menu</h2>
+                    <ul>
+                        <li><a href="@Url.Action("Welcome", "Account")">Trang Chủ</a></li>
+                        <li>Menu</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End Page Title Area -->
+
+<!-- Start Menu Section -->
+<section class="menu-area-two pt-100 pb-70">
+    <div class="container">
+        <div class="row" style="flex-direction:column">
+            <div class="col-md-12">
+                <div class="section-title">
+                    <h6 class="sub-title">Danh Sách Món Ăn</h6>
+                </div>
+            </div>
+            <div class="col-lg-6 col-md-6" style="max-width:100%">
+                <div class="brulee-food-menu">
+                    <h3>Menu</h3>
+
+                    <!-- Tìm món theo mã hoặc tên, có gợi ý khi gõ -->
+                    <form method="get" action="@Url.Action("Menu", "MonAn")" autocomplete="off" class="menu-search">
+                        <div class="goi-y-wrap">
+                            <input type="text" id="TimMon" name="q" value="@ViewBag.TuKhoa"
+                                   placeholder="Tìm món: nhập tên (VD: dau hu, pho) hoặc mã món (VD: MA0005)" />
+                            <button type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+                            <div class="goi-y-list" id="GoiYMon"></div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(ViewBag.TuKhoa as string))
+                        {
+                            <p class="mt-2 mb-0">
+                                Kết quả cho "<b>@ViewBag.TuKhoa</b>": @(Model?.Count ?? 0) món.
+                                <a href="@Url.Action("Menu", "MonAn")" style="color:#ff8d25">Xem tất cả</a>
+                            </p>
+                        }
+                    </form>
+
+                    @if (Model == null || !Model.Any())
+                    {
+                        <p class="text-center">@(string.IsNullOrEmpty(ViewBag.TuKhoa as string) ? "Hiện chưa có món ăn nào." : "Không tìm thấy món phù hợp.")</p>
+                    }
+                    else
+                    {
+                        <partial name="_DanhSachMonAn" model="Model" />
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<!-- End Menu Section -->
+
+<style>
+    .menu-search { margin: 10px 0 30px; }
+    .menu-search .goi-y-wrap { position: relative; display: flex; }
+    .menu-search input {
+        flex: 1; height: 50px; padding: 0 16px; border: 1px solid #ff8d25; border-radius: 6px 0 0 6px; outline: none;
+    }
+    .menu-search button {
+        width: 60px; border: 0; background: #ff8d25; color: #fff; font-size: 18px; border-radius: 0 6px 6px 0;
+    }
+    .goi-y-list {
+        position: absolute; top: 100%; left: 0; right: 60px; z-index: 50; background: #fff;
+        border: 1px solid #eee; border-radius: 0 0 8px 8px; box-shadow: 0 8px 20px rgba(0,0,0,.12);
+        max-height: 360px; overflow-y: auto; display: none;
+    }
+    .goi-y-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; cursor: pointer; color: #333; }
+    .goi-y-item:hover, .goi-y-item.active { background: #fff3e6; }
+    .goi-y-item img { width: 42px; height: 42px; object-fit: cover; border-radius: 6px; }
+    .goi-y-item .ma { font-size: 12px; color: #888; }
+    .goi-y-item b { color: #ff8d25; white-space: nowrap; }
+</style>
+
+@section Scripts {
+    <script>
+        (function () {
+            const o = document.getElementById('TimMon');
+            const box = document.getElementById('GoiYMon');
+            if (!o || !box) return;
+            let timer = null, viTri = -1, ds = [];
+
+            function an() { box.style.display = 'none'; viTri = -1; }
+            function ma(t) { const e = document.createElement('div'); e.textContent = t || ''; return e.innerHTML; }
+            function ve() {
+                box.innerHTML = '';
+                if (!ds.length) {
+                    box.innerHTML = '<div style="padding:10px;color:#888">Không có món phù hợp</div>';
+                    box.style.display = 'block';
+                    return;
+                }
+                ds.forEach(function (m, i) {
+                    const d = document.createElement('div');
+                    d.className = 'goi-y-item' + (i === viTri ? ' active' : '');
+                    d.innerHTML = '<img src="/Images/MonAn/' + encodeURIComponent(m.anh || '') + '" onerror="this.src=\'/Images/logo.png\'">' +
+                        '<div style="flex:1"><div>' + ma(m.ten) + '</div><div class="ma">' + ma(m.ma) + ' · ' + ma(m.loai) + '</div></div>' +
+                        '<b>' + Number(m.gia || 0).toLocaleString('vi-VN') + ' đ</b>';
+                    d.addEventListener('mousedown', function (e) { e.preventDefault(); chon(m); });
+                    box.appendChild(d);
+                });
+                box.style.display = 'block';
+            }
+            function chon(m) { o.value = m.ma; an(); o.form.submit(); }
+
+            o.addEventListener('input', function () {
+                clearTimeout(timer);
+                const q = o.value.trim();
+                if (!q) { an(); return; }
+                timer = setTimeout(function () {
+                    fetch('/MonAn/GoiY?q=' + encodeURIComponent(q), { cache: 'no-store' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (kq) { ds = kq; viTri = -1; ve(); })
+                        .catch(an);
+                }, 200);
+            });
+            o.addEventListener('keydown', function (e) {
+                if (box.style.display !== 'block' || !ds.length) return;
+                if (e.key === 'ArrowDown') { viTri = (viTri + 1) % ds.length; ve(); e.preventDefault(); }
+                else if (e.key === 'ArrowUp') { viTri = (viTri - 1 + ds.length) % ds.length; ve(); e.preventDefault(); }
+                else if (e.key === 'Enter' && viTri >= 0) { e.preventDefault(); chon(ds[viTri]); }
+                else if (e.key === 'Escape') an();
+            });
+            o.addEventListener('blur', function () { setTimeout(an, 150); });
+        })();
+    </script>
+}

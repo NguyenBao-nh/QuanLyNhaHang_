@@ -1,0 +1,80 @@
+﻿@model List<QuanLyNhaHang_.Models.NguyenLieu>
+
+<tr>
+    <td>
+        <select name="ChiTietXuatKho[][MaNguyenLieu]" class="form-control" onchange="fetchIngredientDetails(this)" required>
+            <option value="">Chọn Nguyên Liệu</option>
+            @foreach (var nguyenLieu in Model)
+            {
+                <!-- Sử dụng Manguyenlieu làm value để gửi trực tiếp mã về Controller cho chuẩn CSDL -->
+                <option value="@nguyenLieu.Manguyenlieu" data-ten="@nguyenLieu.Tennguyenlieu">@nguyenLieu.Tennguyenlieu</option>
+            }
+        </select>
+    </td>
+    <td>
+        <!-- Hiển thị mã nguyên liệu tự động -->
+        <input type="text" name="ChiTietXuatKho[][MaNguyenLieuDisplay]" class="form-control" placeholder="Mã Nguyên Liệu" value="" readonly>
+    </td>
+    <td>
+        <input type="number" name="ChiTietXuatKho[][SoLuong]" class="form-control" placeholder="Số Lượng" min="1" required oninput="tinhThanhTien(this)">
+    </td>
+    <td>
+        <input type="text" name="ChiTietXuatKho[][DVT]" class="form-control" placeholder="Đơn Vị Tính" readonly>
+    </td>
+    <td>
+        <input type="number" name="ChiTietXuatKho[][DonGia]" class="form-control" placeholder="Đơn Giá" readonly>
+    </td>
+    <td>
+        <input type="number" name="ChiTietXuatKho[][ThanhTien]" class="form-control" placeholder="Thành Tiền" readonly>
+    </td>
+    <td>
+        <button type="button" class="btn btn-outline-danger" onclick="this.closest('tr').remove()">
+            <i class="bi bi-trash"></i> Xóa
+        </button>
+    </td>
+</tr>
+
+<script>
+    function fetchIngredientDetails(selectElement) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const tenNguyenLieu = selectedOption.getAttribute('data-ten'); // Lấy tên nguyên liệu từ attribute
+
+        if (tenNguyenLieu) {
+            // Gọi API đúng với tên controller trong .NET 8 (Admin_XuatKho)
+            fetch(`/Admin_XuatKho/GetNguyenLieuDetails?tenNguyenLieu=${encodeURIComponent(tenNguyenLieu)}`)
+                .then(response => response.json())
+                .then(data => {
+                    const row = selectElement.closest('tr');
+
+                    if (data.maNguyenLieu) {
+                        // Điền thông tin khớp với kiểu dữ liệu trả về từ Controller .NET 8
+                        row.querySelector('[name*="[MaNguyenLieuDisplay]"]').value = data.maNguyenLieu;
+                        row.querySelector('[name*="[DVT]"]').value = data.dvt;
+                        row.querySelector('[name*="[DonGia]"]').value = data.donGia;
+
+                        // Tính lại thành tiền nếu đã nhập số lượng
+                        tinhThanhTien(row.querySelector('[name*="[SoLuong]"]'));
+                    } else {
+                        alert(data.error);
+                    }
+                })
+                .catch(error => console.error('Lỗi khi lấy thông tin nguyên liệu:', error));
+        } else {
+            const row = selectElement.closest('tr');
+            row.querySelector('[name*="[MaNguyenLieuDisplay]"]').value = '';
+            row.querySelector('[name*="[DVT]"]').value = '';
+            row.querySelector('[name*="[DonGia]"]').value = '';
+            row.querySelector('[name*="[ThanhTien]"]').value = '';
+        }
+    }
+
+    // Hàm hỗ trợ tự động tính Thành Tiền = Số Lượng * Đơn Giá
+    function tinhThanhTien(inputElement) {
+        const row = inputElement.closest('tr');
+        const soLuong = parseFloat(row.querySelector('[name*="[SoLuong]"]').value) || 0;
+        const donGia = parseFloat(row.querySelector('[name*="[DonGia]"]').value) || 0;
+        const thanhTien = soLuong * donGia;
+
+        row.querySelector('[name*="[ThanhTien]"]').value = thanhTien;
+    }
+</script>

@@ -1,0 +1,79 @@
+﻿@model QuanLyNhaHang_.Models.MaGiamGia
+
+@{
+    ViewData["Title"] = "Sửa mã giảm giá";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    bool laMaDoiDiem = Model.PhanTram == 0;   // mã khách đổi từ điểm thành viên: giảm số tiền cố định
+}
+
+<h2 class="text-center my-4" style="color: #fa8f23">Sửa Mã Giảm Giá</h2>
+
+<div class="container" style="max-width: 600px">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@err.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form asp-action="SuaMaGiamGia" method="post">
+        <div class="form-group mb-3">
+            <label class="control-label">Mã giảm giá</label>
+            <input class="form-control" value="@Model.MaGiamGia_Code" readonly />
+            <input type="hidden" asp-for="MaGiamGia_Code" />
+            <small class="text-muted">Không đổi được chuỗi mã vì hóa đơn cũ đang lưu mã này.</small>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="NgayBD" class="control-label">Ngày bắt đầu</label>
+            <input asp-for="NgayBD" class="form-control" type="date" />
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="NgayKT" class="control-label">Ngày kết thúc</label>
+            <input asp-for="NgayKT" class="form-control" type="date" />
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="SoLuong" class="control-label">Số lượng còn lại</label>
+            <input asp-for="SoLuong" class="form-control" type="number" min="0" />
+            <small class="text-muted">Đặt 0 để tạm dừng mã.</small>
+        </div>
+
+        @if (laMaDoiDiem)
+        {
+            <input type="hidden" asp-for="PhanTram" />
+            <div class="form-group mb-3">
+                <label asp-for="SoTien" class="control-label">Số tiền giảm cố định (VNĐ) <span class="text-danger">*</span></label>
+                <input asp-for="SoTien" class="form-control" type="number" min="1000" step="1000" required />
+                <small class="text-muted">Đây là mã khách đổi từ điểm thành viên.</small>
+            </div>
+        }
+        else
+        {
+            <div class="form-group mb-3">
+                <label asp-for="PhanTram" class="control-label">Phần trăm giảm (%) <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <input asp-for="PhanTram" class="form-control" type="number" min="1" max="100" step="1" required />
+                    <span class="input-group-text">%</span>
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="SoTien" class="control-label">Giảm tối đa (VNĐ) - không bắt buộc</label>
+                <input asp-for="SoTien" class="form-control" type="number" min="0" step="1000" />
+                <small class="text-muted">Để 0 nếu không giới hạn số tiền giảm.</small>
+            </div>
+        }
+
+        <div class="d-flex justify-content-between">
+            <a asp-action="HienThiMaGiamGia" class="btn btn-secondary">Quay lại danh sách</a>
+            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+        </div>
+    </form>
+</div>

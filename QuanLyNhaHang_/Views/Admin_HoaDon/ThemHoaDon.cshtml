@@ -1,0 +1,244 @@
+@model QuanLyNhaHang_.Models.ThemPhieuNhapKhoViewModel
+@{
+    ViewData["Title"] = "Thêm Phiếu Nhập Kho";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+
+    var ngay = (Model.NgayNhapKho ?? DateTime.Now)
+        .ToString("yyyy-MM-ddTHH:mm", System.Globalization.CultureInfo.InvariantCulture);
+
+    // Các dòng đã nhập (khi server báo lỗi và hiển thị lại form)
+    var dongDaNhap = Model.ChiTiet
+        .Select(c => new { ma = (c.Manguyenlieu ?? "").Trim(), sl = c.Soluong })
+        .ToList();
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="text-primary">Tạo Phiếu Nhập Kho</h2>
+        <a href="@Url.Action("HienThiHoaDon", "Admin_HoaDon")" class="btn btn-secondary">
+            <i class="bi bi-arrow-left"></i> Quay Lại Danh Sách
+        </a>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@err.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form method="post" asp-controller="Admin_HoaDon" asp-action="ThemHoaDon" id="phieuForm">
+
+        <!-- ===== Thông tin chung của phiếu ===== -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Thông Tin Phiếu</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 col-12 mb-3">
+                        <label for="MaNV" class="form-label">Nhân Viên Lập Phiếu</label>
+                        @if (Model.MaNVSession != null)
+                        {
+                            <!-- Đăng nhập bằng tài khoản nhân viên: tự điền và khóa -->
+                            <input type="text" id="MaNV" name="MaNV" class="form-control"
+                                   value="@Model.MaNVSession" readonly />
+                        }
+                        else
+                        {
+                            <!-- Không có session nhân viên: cho chọn từ danh sách để vẫn nhập được -->
+                            <select id="MaNV" name="MaNV" class="form-select" required>
+                                <option value="">-- Chọn nhân viên --</option>
+                                @foreach (var nv in Model.NhanViens)
+                                {
+                                    <option value="@nv.Ma" selected="@(nv.Ma == Model.MaNV)">@nv.Ma - @nv.HoTen</option>
+                                }
+                            </select>
+                        }
+                    </div>
+
+                    <div class="col-md-4 col-12 mb-3">
+                        <label for="MaNhapKho" class="form-label">Mã Phiếu Nhập</label>
+                        <!-- Mã do hệ thống tự sinh; server sẽ sinh lại khi lưu để không bao giờ bị trùng -->
+                        <input type="text" id="MaNhapKho" name="MaNhapKho" class="form-control"
+                               value="@Model.MaNhapKho" readonly />
+                    </div>
+
+                    <div class="col-md-4 col-12 mb-3">
+                        <label for="NgayNhapKho" class="form-label">Ngày Nhập</label>
+                        <input type="datetime-local" id="NgayNhapKho" name="NgayNhapKho"
+                               class="form-control" value="@ngay" required />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Chi tiết phiếu ===== -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Chi Tiết Phiếu Nhập Kho</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle">
+                        <thead>
+                            <tr class="text-center">
+                                <th style="min-width:260px">Nguyên Liệu</th>
+                                <th style="width:140px">Số Lượng</th>
+                                <th style="width:120px">Đơn Vị Tính</th>
+                                <th style="width:160px">Đơn Giá</th>
+                                <th style="width:180px">Thành Tiền</th>
+                                <th style="width:90px">Xóa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productRows"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="4" class="text-end fw-bold">Tổng tiền:</td>
+                                <td colspan="2" class="fw-bold text-danger" id="tongTien">0 đ</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <button type="button" class="btn btn-dark" id="addNewRow">
+                    <i class="bi bi-plus-circle"></i> Thêm Dòng Mới
+                </button>
+            </div>
+        </div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="TraTienMat" name="TraTienMat" value="true"
+                           @(Model.TraTienMat ? "checked" : "") @(Model.TienKet == null ? "disabled" : "") />
+                    <label class="form-check-label" for="TraTienMat">
+                        <strong>Trả tiền hàng bằng tiền mặt từ két</strong> (trừ vào két của ca đang mở)
+                    </label>
+                </div>
+                <small class="text-muted">
+                    @if (Model.TienKet == null)
+                    {
+                        <span>Chưa mở ca nên không lấy tiền két được - phiếu được ghi là trả bằng chuyển khoản / nguồn khác.</span>
+                    }
+                    else
+                    {
+                        <span>Tiền trong két hiện tại: <strong>@Model.TienKet.Value.ToString("N0") đ</strong>. Không chọn = trả bằng chuyển khoản / nguồn khác (không trừ két).</span>
+                    }
+                </small>
+            </div>
+        </div>
+
+        <div class="text-end mb-4">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <i class="bi bi-save"></i> Lưu Phiếu Nhập Kho
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Mẫu 1 dòng chi tiết (tên field được đánh chỉ số đúng khi submit) -->
+<template id="rowTemplate">
+    <tr>
+        <td>
+            <select class="form-select ma-nl" required>
+                <option value="">-- Chọn nguyên liệu --</option>
+                @foreach (var nl in Model.NguyenLieus)
+                {
+                    <option value="@nl.Ma" data-dvt="@nl.Dvt" data-dongia="@nl.DonGia">@nl.Ma - @nl.Ten</option>
+                }
+            </select>
+        </td>
+        <td><input type="number" class="form-control so-luong" min="1" step="1" placeholder="Số lượng" required /></td>
+        <td><input type="text" class="form-control dvt" readonly tabindex="-1" /></td>
+        <td><input type="text" class="form-control don-gia text-end" readonly tabindex="-1" /></td>
+        <td><input type="text" class="form-control thanh-tien text-end" readonly tabindex="-1" /></td>
+        <td class="text-center">
+            <button type="button" class="btn btn-outline-danger btn-sm btn-xoa" title="Xóa dòng">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+@section Scripts {
+    <script>
+        (function () {
+            const form = document.getElementById('phieuForm');
+            const tbody = document.getElementById('productRows');
+            const tpl = document.getElementById('rowTemplate');
+            const tongEl = document.getElementById('tongTien');
+            const fmt = n => Number(n || 0).toLocaleString('vi-VN');
+            const dongDaNhap = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(dongDaNhap));
+
+            // Tính 1 dòng, trả về thành tiền của dòng đó
+            function tinhDong(tr) {
+                const sel = tr.querySelector('.ma-nl');
+                const opt = sel.value ? sel.selectedOptions[0] : null;
+                const donGia = opt ? Number(opt.dataset.dongia || 0) : 0;
+                const soLuong = parseFloat(tr.querySelector('.so-luong').value) || 0;
+
+                tr.querySelector('.dvt').value = opt ? (opt.dataset.dvt || '') : '';
+                tr.querySelector('.don-gia').value = opt ? fmt(donGia) : '';
+                tr.querySelector('.thanh-tien').value = opt ? fmt(soLuong * donGia) : '';
+                return soLuong * donGia;
+            }
+
+            function tinhTong() {
+                let tong = 0;
+                tbody.querySelectorAll('tr').forEach(tr => { tong += tinhDong(tr); });
+                tongEl.textContent = fmt(tong) + ' đ';
+            }
+
+            function themDong(ma, soLuong) {
+                const tr = tpl.content.firstElementChild.cloneNode(true);
+                if (ma) tr.querySelector('.ma-nl').value = ma;
+                if (soLuong) tr.querySelector('.so-luong').value = soLuong;
+                tbody.appendChild(tr);
+                tinhTong();
+            }
+
+            // Chọn nguyên liệu / đổi số lượng -> tính lại
+            tbody.addEventListener('change', tinhTong);
+            tbody.addEventListener('input', tinhTong);
+
+            // Xóa dòng (luôn giữ lại ít nhất 1 dòng)
+            tbody.addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-xoa');
+                if (!btn) return;
+                const tr = btn.closest('tr');
+                if (tbody.querySelectorAll('tr').length > 1) {
+                    tr.remove();
+                } else {
+                    tr.querySelector('.ma-nl').value = '';
+                    tr.querySelector('.so-luong').value = '';
+                }
+                tinhTong();
+            });
+
+            document.getElementById('addNewRow').addEventListener('click', function () {
+                themDong();
+            });
+
+            // Trước khi gửi: đánh chỉ số ChiTiet[0], ChiTiet[1], ... để ASP.NET Core bind được List
+            form.addEventListener('submit', function () {
+                tbody.querySelectorAll('tr').forEach(function (tr, i) {
+                    tr.querySelector('.ma-nl').name = 'ChiTiet[' + i + '].Manguyenlieu';
+                    tr.querySelector('.so-luong').name = 'ChiTiet[' + i + '].Soluong';
+                });
+            });
+
+            // Khởi tạo: hiển thị lại các dòng đã nhập (nếu có lỗi), nếu không thì 1 dòng trống
+            if (dongDaNhap.length) {
+                dongDaNhap.forEach(d => themDong(d.ma, d.sl));
+            } else {
+                themDong();
+            }
+        })();
+    </script>
+}

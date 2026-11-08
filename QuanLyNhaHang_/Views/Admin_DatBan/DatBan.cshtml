@@ -1,0 +1,233 @@
+﻿@model IEnumerable<QuanLyNhaHang_.Models.PhieuDatBan>
+
+@{
+    ViewData["Title"] = "Đặt Bàn";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    var dsKhach = ViewBag.Khach as Dictionary<string, KhachHang> ?? new Dictionary<string, KhachHang>();
+    var soLuong = ViewBag.SoLuong as Dictionary<string, int> ?? new Dictionary<string, int>();
+    string tab = ViewBag.Tab as string ?? "cho";
+    var cacTab = new[]
+    {
+        ("cho", "Chờ xếp bàn", "bi-hourglass-split"),
+        ("dang", "Đang phục vụ", "bi-cup-hot"),
+        ("xong", "Đã phục vụ / Đã hủy", "bi-check2-all"),
+        ("tatca", "Tất cả", "bi-list-ul")
+    };
+    var bayGio = DateTime.Now;
+    var khongDatTruoc = ViewBag.KhongDatTruoc as List<Ban> ?? new List<Ban>();
+    var phieuMo = ViewBag.PhieuMo as HashSet<string> ?? new HashSet<string>();
+}
+
+<h2 class="text-center my-4 text-uppercase" style="color: #f49030">Yêu Cầu Đặt Bàn Từ Khách</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<ul class="nav nav-pills mb-3">
+    @foreach (var (ma, ten, icon) in cacTab)
+    {
+        <li class="nav-item">
+            <a class="nav-link @(tab == ma ? "active" : "")" asp-action="DatBan" asp-route-tab="@ma">
+                <i class="bi @icon"></i> @ten
+                <span class="badge @(tab == ma ? "bg-light text-dark" : "bg-secondary")">@soLuong.GetValueOrDefault(ma)</span>
+            </a>
+        </li>
+    }
+</ul>
+<p class="text-muted small">
+    Xếp bàn xong phiếu chuyển sang <strong>Đang phục vụ</strong> (không còn nằm trong danh sách chờ).
+    Bấm <strong>Phục vụ xong</strong> (ở đây hoặc ở Quản lý bàn) thì bàn trở về trống và phiếu được ẩn sang tab <strong>Đã phục vụ</strong>.
+</p>
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Mã Phiếu</th>
+                        <th>Ngày Đặt</th>
+                        <th>Giờ Đặt</th>
+                        <th>Tên Khách Hàng</th>
+                        <th>Số Lượng</th>
+                        <th>Liên hệ</th>
+                        <th>Tài khoản khách</th>
+                        <th>Trạng thái</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            var maKH = item.Makh?.Trim() ?? "";
+                            var kh = dsKhach.GetValueOrDefault(maKH);
+                            var maBan = item.Maban?.Trim();
+                            bool cho = TrangThaiDatBan.LaChoXepBan(item.Trangthai);
+                            bool dang = item.Trangthai == TrangThaiDatBan.DangPhucVu;
+
+                            DateTime? luc = null;
+                            if (item.Ngaydat.HasValue && TimeSpan.TryParse(item.Giodat, out var gio))
+                                luc = item.Ngaydat.Value.Date.Add(gio);
+                            bool quaGio = cho && luc.HasValue && luc.Value < bayGio.AddHours(-1);
+
+                            <tr>
+                                <td>@item.Maphieu</td>
+                                <td>@(item.Ngaydat.HasValue ? item.Ngaydat.Value.ToString("dd/MM/yyyy") : "")</td>
+                                <td>@item.Giodat</td>
+                                <td>@item.Tenkh</td>
+                                <td>@item.Soluong</td>
+                                <td class="text-start small">
+                                    <div><i class="bi bi-telephone"></i> @item.Sdt</div>
+                                    <div><i class="bi bi-envelope"></i> @item.Email</div>
+                                </td>
+                                <td class="text-start">
+                                    @if (kh != null)
+                                    {
+                                        <div class="fw-semibold">@kh.Hoten</div>
+                                        <div class="small text-muted">
+                                            <i class="bi bi-person-badge"></i> @(kh.MataikhoanNavigation?.Tendangnhap ?? kh.Mataikhoan?.Trim())
+                                            · Mã KH @maKH · @(kh.Diemthanhvien ?? 0) điểm
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">Khách chưa đăng nhập</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (cho)
+                                    {
+                                        <span class="badge bg-warning text-dark">Chờ xếp bàn</span>
+                                        @if (quaGio)
+                                        {
+                                            <div><span class="badge bg-secondary mt-1">Quá giờ hẹn</span></div>
+                                        }
+                                    }
+                                    else if (dang)
+                                    {
+                                        <span class="badge bg-danger">@("Đang phục vụ" + (maBan != null ? " · bàn " + maBan : ""))</span>
+                                    }
+                                    else if (item.Trangthai == TrangThaiDatBan.DaPhucVu)
+                                    {
+                                        <span class="badge bg-success">@("Đã phục vụ" + (maBan != null ? " · bàn " + maBan : ""))</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@item.Trangthai</span>
+                                    }
+                                </td>
+                                <td class="text-nowrap">
+                                    @if (cho)
+                                    {
+                                        <a asp-controller="QuanLyBan" asp-action="XepBan" asp-route-maPhieu="@item.Maphieu"
+                                           class="btn btn-sm btn-success">Xếp bàn</a>
+                                        <form asp-action="Huy" method="post" class="d-inline"
+                                              onsubmit="return confirm('Ẩn phiếu @item.Maphieu (khách không đến / hủy)?');">
+                                            <input type="hidden" name="maPhieu" value="@item.Maphieu" />
+                                            <input type="hidden" name="tab" value="@tab" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary">Hủy / Ẩn</button>
+                                        </form>
+                                    }
+                                    else if (dang)
+                                    {
+                                        <form asp-action="PhucVuXong" method="post" class="d-inline"
+                                              onsubmit="return confirm('Khách của phiếu @item.Maphieu đã phục vụ xong? Bàn @(maBan) sẽ trở về trống.');">
+                                            <input type="hidden" name="maPhieu" value="@item.Maphieu" />
+                                            <input type="hidden" name="tab" value="@tab" />
+                                            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check2-circle"></i> Phục vụ xong</button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="KhoiPhuc" method="post" class="d-inline">
+                                            <input type="hidden" name="maPhieu" value="@item.Maphieu" />
+                                            <input type="hidden" name="tab" value="@tab" />
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Khôi phục</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="9" class="text-muted">Không có phiếu đặt bàn nào trong mục này.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@if (khongDatTruoc.Any())
+{
+    <h5 class="mt-2 mb-2" style="color:#f49030"><i class="bi bi-person-walking"></i> Khách đang ngồi không đặt trước (@khongDatTruoc.Count)</h5>
+    <p class="text-muted small">Khách vãng lai hoặc khách vào thẳng, được xếp bàn / mở phiếu gọi món mà không có phiếu đặt bàn.</p>
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover align-middle text-center">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Bàn</th>
+                            <th>Tên khách</th>
+                            <th>SĐT</th>
+                            <th>Tài khoản khách</th>
+                            <th>Vào lúc</th>
+                            <th>Trạng thái</th>
+                            <th>Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in khongDatTruoc)
+                        {
+                            var maB = b.Maban.Trim();
+                            var khB = b.MakhNavigation;
+                            bool conPhieu = phieuMo.Contains(maB);
+                            <tr>
+                                <td class="fw-bold">@maB</td>
+                                <td>@(khB?.Hoten ?? b.Tenkhach ?? "Chưa ghi tên")</td>
+                                <td>@((b.Sdtkhach ?? khB?.Sodt)?.Trim())</td>
+                                <td class="text-start">
+                                    @if (khB != null)
+                                    {
+                                        <div><i class="bi bi-person-badge"></i> @(khB.MataikhoanNavigation?.Tendangnhap ?? khB.Mataikhoan?.Trim())</div>
+                                        <div class="small text-muted">Mã KH @khB.Makh.Trim()</div>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Khách vãng lai</span>
+                                    }
+                                </td>
+                                <td>@b.Giovao?.ToString("HH:mm dd/MM")</td>
+                                <td><span class="badge bg-danger">@("Đang phục vụ · bàn " + maB)</span></td>
+                                <td class="text-nowrap">
+                                    <form asp-controller="QuanLyBan" asp-action="PhucVuXong" method="post" class="d-inline"
+                                          onsubmit="return confirm('Bàn @(maB) đã phục vụ xong? Bàn sẽ trở về trống.');">
+                                        <input type="hidden" name="maBan" value="@maB" />
+                                        <input type="hidden" name="veDatBan" value="@tab" />
+                                        <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check2-circle"></i> Phục vụ xong</button>
+                                    </form>
+                                    @if (conPhieu)
+                                    {
+                                        <div class="small text-danger mt-1">Còn phiếu chưa thanh toán</div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

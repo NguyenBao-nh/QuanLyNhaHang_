@@ -1,0 +1,59 @@
+﻿@model IEnumerable<HoaDon>
+@{
+    Layout = null;
+}
+
+<div class="container mt-4">
+    <h4 class="mb-3">Lịch sử đơn hàng</h4>
+    <div class="table-responsive">
+        <table class="table table-bordered table-hover">
+            <thead class="table-primary">
+                <tr>
+                    <th>Mã Hóa Đơn</th>
+                    <th>Mã Bàn</th>
+                    <th>Mã Nhân Viên</th>
+                    <th>Mã Giảm Giá</th>
+                    <th>Ngày Lập</th>
+                    <th>Tổng Tiền</th>
+                    <th>Hình Thức</th>
+                    <th>Trạng Thái</th>
+                    <th>Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="9" class="text-center text-muted">Bạn chưa có đơn hàng nào.</td></tr>
+                }
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Mahoadon.Trim()</td>
+                        <td>@item.Maban?.Trim()</td>
+                        <td>@item.Manv?.Trim()</td>
+                        <td>@item.Magiamgia?.Trim()</td>
+                        <td>@item.Ngaylap?.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@((item.Tongtien ?? 0).ToString("N0")) VNĐ</td>
+                        <td>@item.Hinhthuc</td>
+                        <td>
+                            @if (item.LaDonTrucTuyen)
+                            {
+                                <span class="badge @TrangThaiDon.MauBadge(item.Trangthai)">@(item.Trangthai ?? "-")</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Tại quán</span>
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="ShowCTHD" asp-controller="KhachHang" asp-route-ma="@item.Mahoadon.Trim()"
+                               class="btn btn-sm btn-info">Xem Chi Tiết</a>
+                            <a asp-action="InHoaDon" asp-controller="KhachHang" asp-route-ma="@item.Mahoadon.Trim()" asp-route-auto="1"
+                               target="_blank" class="btn btn-sm btn-warning">In</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

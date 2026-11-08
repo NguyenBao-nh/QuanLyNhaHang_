@@ -1,0 +1,51 @@
+﻿@model IEnumerable<HoaDon>
+@{
+    ViewData["Title"] = "Danh Sách Hóa Đơn";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+}
+
+<h2 class="text-center my-4" style="color: #fa8f23">DANH SÁCH HOÁ ĐƠN</h2>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<!-- Lọc theo khoảng ngày -->
+<form asp-action="ShowHD" asp-controller="NhaHang" method="get">
+    <div class="container mt-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-4">
+                <label for="NgayBD" class="form-label">Ngày bắt đầu:</label>
+                <input type="date" id="NgayBD" name="ngayBD" class="form-control" value="@Context.Request.Query["ngayBD"]" />
+            </div>
+            <div class="col-md-4">
+                <label for="NgayKT" class="form-label">Ngày kết thúc:</label>
+                <input type="date" id="NgayKT" name="ngayKT" class="form-control" value="@Context.Request.Query["ngayKT"]" />
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Lọc</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Tìm kiếm -->
+<form asp-action="ListTimKiem" asp-controller="NhaHang" method="get" class="container mt-3 mb-3">
+    <div class="input-group">
+        <input type="text" name="txt_Search" class="form-control" placeholder="Tìm theo mã hóa đơn, bàn, khách hàng, nhân viên, giảm giá, hình thức..." />
+        <button type="submit" class="btn btn-outline-primary">Tìm kiếm</button>
+        <a asp-action="ThemHD" class="btn btn-success">Thêm hóa đơn</a>
+        <a asp-controller="Admin_DonTrucTuyen" asp-action="DanhSach" class="btn btn-warning">
+            <i class="bi bi-globe2"></i> Người mua trực tuyến @await Component.InvokeAsync("SoDonChoXacNhan")
+        </a>
+    </div>
+</form>
+
+<p class="text-muted">Tổng số: <strong>@ViewBag.SL</strong> hóa đơn</p>
+
+<partial name="_BangHoaDon" model="Model" />

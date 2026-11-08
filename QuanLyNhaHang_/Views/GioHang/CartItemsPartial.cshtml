@@ -1,0 +1,111 @@
+﻿@model List<QuanLyNhaHang_.Models.GioHang>
+@using Microsoft.EntityFrameworkCore
+@inject QuanLyNhaHang_.Models.DbQlNhaHangContext Db
+@{
+    // Bàn của tài khoản đang đăng nhập (nhân viên xếp bàn ở trang Quản lý bàn)
+    string? maKHGio = Context.Session.GetString("MaKH")?.Trim();
+    string? banCuaToi = null;
+    if (!string.IsNullOrEmpty(maKHGio) && Model != null && Model.Count > 0)
+    {
+        banCuaToi = (await Db.Bans.AsNoTracking()
+            .Where(b => b.Makh == maKHGio && b.Trangthai == "Đầy")
+            .Select(b => b.Maban).FirstOrDefaultAsync())?.Trim();
+    }
+}
+
+<div data-cart-count="@(Model?.Count ?? 0)" style="display:none"></div>
+
+@if (Model != null && Model.Count > 0)
+{
+    <div class="cart-container" style="margin: 20px auto; width: 80%; font-family: Arial, sans-serif; border: 1px solid #ddd; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <h2 style="text-align: center; margin: 15px 0; color: #333;">Giỏ Hàng</h2>
+
+        @if (!string.IsNullOrEmpty(banCuaToi))
+        {
+            <div style="margin: 0 20px; padding: 10px 14px; background: #fff3e6; border-left: 4px solid #ff8d25; border-radius: 6px; color: #333;">
+                <i class="fa-solid fa-chair" style="color:#ff8d25"></i>
+                Bạn đang ngồi <b>bàn @banCuaToi</b> - món gọi sẽ được phục vụ tại bàn này
+                (tài khoản: <b>@Context.Session.GetString("HoTen")</b>).
+            </div>
+        }
+        else if (string.IsNullOrEmpty(Context.Session.GetString("MaTaiKhoan")))
+        {
+            <div style="margin: 0 20px; padding: 10px 14px; background: #f8f9fa; border-left: 4px solid #aaa; border-radius: 6px; color: #555;">
+                Đăng nhập để thanh toán và để nhà hàng biết món thuộc bàn nào.
+            </div>
+        }
+        else
+        {
+            <div style="margin: 0 20px; padding: 10px 14px; background: #f8f9fa; border-left: 4px solid #aaa; border-radius: 6px; color: #555;">
+                Tài khoản của bạn chưa được xếp bàn. Khi đến nhà hàng, hãy báo nhân viên tên tài khoản để món được gửi về đúng bàn.
+            </div>
+        }
+
+        <!-- Form bọc danh sách sản phẩm -->
+        <form id="cart-form" method="post" action="@Url.Action("HienThiHoaDonVaQRThanhToan", "GioHang")">
+            @Html.AntiForgeryToken()
+            <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <thead>
+                    <tr style="background-color: #f8f9fa; border-bottom: 2px solid #ddd; color: #555;">
+                        <th style="padding: 12px; text-align: center;">Ảnh</th>
+                        <th style="padding: 12px; text-align: left;">Tên món</th>
+                        <th style="padding: 12px; text-align: center;">Số lượng</th>
+                        <th style="padding: 12px; text-align: right;">Đơn giá</th>
+                        <th style="padding: 12px; text-align: right;">Thành tiền</th>
+                        <th style="padding: 12px; text-align: center;">Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{ double tongTien = 0; }
+                    @foreach (var item in Model)
+                    {
+                        <tr style="border-bottom: 1px solid #ddd; vertical-align: middle;">
+                            <td style="padding: 12px; text-align: center;">
+                                <img src="@Url.Content("~/Images/MonAn/" + item.AnhMon)"
+                                     alt="@item.TenMonAn"
+                                     style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                            </td>
+                            <td style="padding: 12px; text-align: left; color: #555;">@item.TenMonAn</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <input type="number"
+                                       value="@item.SoLuong"
+                                       min="1"
+                                       style="width: 50px; text-align: center; margin: 0 5px; border: 1px solid #ddd; border-radius: 4px;"
+                                       onchange="updateQuantity('@item.MaMonAn', this.value)">
+                            </td>
+                            <td style="padding: 12px; text-align: right; color: #555;">@((item.DonGia).ToString("N0")) ₫</td>
+                            <td style="padding: 12px; text-align: right; color: #555;">@((item.ThanhTien).ToString("N0")) ₫</td>
+                            <td style="padding: 12px; text-align: center;">
+                                <button type="button" class="btn btn-sm btn-warning" onclick="removeItem('@item.MaMonAn')"
+                                        style="padding: 5px 10px; background-color: #ffc107; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                                    Xóa
+                                </button>
+                            </td>
+                        </tr>
+                        tongTien += item.ThanhTien;
+                    }
+                </tbody>
+            </table>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background-color: #f8f9fa; border-top: 2px solid #ddd;">
+                <div style="font-size: 18px; font-weight: bold; color: #555;">
+                    Tổng Tiền: <span style="color: red;">@tongTien.ToString("N0") ₫</span>
+                </div>
+                <div>
+                    <!-- Mã giảm giá -->
+                    <label>Mã giảm giá:</label>
+                    <input type="text" name="MaGiamGia" id="MaGiamGia" onchange="validateDiscountCode()" style="margin-left: 10px; padding: 5px; border: 1px solid #ddd; border-radius: 4px;">
+                    <span id="discount-message" style="margin-left: 10px; color: red;"></span>
+                </div>
+                <!-- Nút Thanh Toán -->
+                <button type="submit" style="background-color: #ff8d25; color: white; padding: 10px 20px; font-size: 16px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer;">
+                    Thanh Toán
+                </button>
+            </div>
+        </form>
+    </div>
+}
+else
+{
+    <div class="text-center" style="margin: 50px auto; font-size: 18px; font-weight: bold; color: #555; text-align: center;">Giỏ hàng trống</div>
+}

@@ -1,0 +1,48 @@
+﻿@model NutXuLyDonModel
+@* Nút xử lý đơn trực tuyến theo trạng thái. Tab: tab danh sách để quay về, VeChiTiet: true nếu đang ở trang chi tiết *@
+@{
+    string? tab = Model.Tab;
+    bool veChiTiet = Model.VeChiTiet;
+    string ma = Model.Don.Mahoadon.Trim();
+    string tt = Model.Don.Trangthai?.Trim() ?? "";
+    string idHuy = "huy-" + ma;
+}
+@if (tt == TrangThaiDon.ChoXacNhan)
+{
+    <form asp-controller="Admin_DonTrucTuyen" asp-action="XacNhanDon" method="post" class="d-inline">
+        <input type="hidden" name="ma" value="@ma" />
+        <input type="hidden" name="tt" value="@tab" />
+        <input type="hidden" name="veChiTiet" value="@veChiTiet.ToString().ToLower()" />
+        <button type="submit" class="btn btn-sm btn-primary mb-1"
+                data-hoi="Đã kiểm tra tài khoản ngân hàng và nhận đủ @((Model.Don.Tongtien ?? 0).ToString("N0"))đ (nội dung @ma)?"
+                onclick="return confirm(this.dataset.hoi);">
+            <i class="bi bi-check2-circle"></i> Đã nhận tiền - Xác nhận đơn
+        </button>
+    </form>
+}
+@if (tt == TrangThaiDon.DaXacNhan)
+{
+    <form asp-controller="Admin_DonTrucTuyen" asp-action="XacNhanGiao" method="post" class="d-inline">
+        <input type="hidden" name="ma" value="@ma" />
+        <input type="hidden" name="tt" value="@tab" />
+        <input type="hidden" name="veChiTiet" value="@veChiTiet.ToString().ToLower()" />
+        <button type="submit" class="btn btn-sm btn-success mb-1"><i class="bi bi-truck"></i> Xác nhận giao</button>
+    </form>
+}
+@if (tt == TrangThaiDon.ChoXacNhan || tt == TrangThaiDon.DaXacNhan)
+{
+    <button type="button" class="btn btn-sm btn-outline-danger mb-1" data-bs-toggle="collapse" data-bs-target="#@idHuy">
+        <i class="bi bi-x-circle"></i> Hủy đơn
+    </button>
+    <form asp-controller="Admin_DonTrucTuyen" asp-action="HuyDon" method="post" id="@idHuy" class="collapse mt-1"
+          data-hoi="Hủy đơn @ma? Điểm thành viên đã cộng sẽ bị trừ lại." onsubmit="return confirm(this.dataset.hoi);">
+        <input type="hidden" name="ma" value="@ma" />
+        <input type="hidden" name="tt" value="@tab" />
+        <input type="hidden" name="veChiTiet" value="@veChiTiet.ToString().ToLower()" />
+        <div class="input-group input-group-sm" style="min-width:240px">
+            <input type="text" name="LyDo" class="form-control" maxlength="200" required placeholder="Lý do (chưa nhận được tiền, hết món...)" list="lyDoHuyDon" />
+            <button type="submit" class="btn btn-danger">Hủy</button>
+        </div>
+    </form>
+}
+

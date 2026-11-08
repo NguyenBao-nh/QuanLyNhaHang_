@@ -1,0 +1,122 @@
+﻿@model IEnumerable<QuanLyNhaHang_.Models.MaGiamGia>
+
+@{
+    ViewData["Title"] = "Mã giảm giá";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    bool laQuanLy = ViewBag.LaQuanLy is bool b && b;     // quản lý: thêm / sửa / xóa; nhân viên: chỉ xem
+    bool tatCa = ViewBag.TatCa is bool t && t;
+    var homNay = DateTime.Today;
+}
+
+<h2 class="text-center my-4 text-uppercase" style="color: #fa8f23">Danh Sách Mã Giảm Giá</h2>
+
+@if (TempData["SignSuccess"] != null)
+{
+    <div class="alert alert-success">@TempData["SignSuccess"]</div>
+}
+@if (TempData["SignError"] != null)
+{
+    <div class="alert alert-danger">@TempData["SignError"]</div>
+}
+
+@if (laQuanLy)
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="btn-group">
+            <a asp-action="HienThiMaGiamGia" class="btn btn-sm @(tatCa ? "btn-outline-secondary" : "btn-secondary")">Còn hiệu lực</a>
+            <a asp-action="HienThiMaGiamGia" asp-route-tatCa="true" class="btn btn-sm @(tatCa ? "btn-secondary" : "btn-outline-secondary")">Tất cả (cả mã đã hết hạn)</a>
+        </div>
+        <a asp-action="TaoMaGiamGia" class="btn btn-success"><i class="bi bi-plus-circle"></i> Tạo mã giảm giá</a>
+    </div>
+}
+else
+{
+    <div class="alert alert-info py-2">
+        <i class="bi bi-eye"></i> Danh sách mã giảm giá đang còn hiệu lực để áp cho khách khi thanh toán.
+        Thêm / sửa / xóa mã giảm giá do tài khoản quản lý thực hiện.
+    </div>
+}
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover align-middle text-center">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Mã Giảm Giá (Code)</th>
+                        <th>Ngày Bắt Đầu</th>
+                        <th>Ngày Kết Thúc</th>
+                        <th>Số Lượng</th>
+                        <th>Phần Trăm Giảm</th>
+                        <th>Giảm Tối Đa</th>
+                        @if (laQuanLy)
+                        {
+                            <th>Trạng thái</th>
+                            <th>Hành Động</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        @foreach (var item in Model)
+                        {
+                            bool conHieuLuc = item.NgayKT >= homNay && item.SoLuong > 0;
+                            <tr class="@(conHieuLuc ? "" : "text-muted")">
+                                <td><strong>@item.MaGiamGia_Code</strong></td>
+                                <td>@item.NgayBD.ToString("dd/MM/yyyy")</td>
+                                <td>@item.NgayKT.ToString("dd/MM/yyyy")</td>
+                                <td>@item.SoLuong</td>
+                                @if (item.PhanTram > 0)
+                                {
+                                    <td><span class="badge bg-success fs-6">@item.PhanTram%</span></td>
+                                    <td>@(item.SoTien > 0 ? item.SoTien.ToString("N0") + " VNĐ" : "Không giới hạn")</td>
+                                }
+                                else
+                                {
+                                    @* Mã khách đổi từ điểm thành viên: giảm số tiền cố định *@
+                                    <td><span class="text-muted small">Đổi điểm</span></td>
+                                    <td>@item.SoTien.ToString("N0") VNĐ (cố định)</td>
+                                }
+                                @if (laQuanLy)
+                                {
+                                    <td>
+                                        @if (conHieuLuc)
+                                        {
+                                            <span class="badge bg-success">Còn hiệu lực</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Hết hạn / hết lượt</span>
+                                        }
+                                    </td>
+                                    <td class="text-nowrap">
+                                        <a asp-action="SuaMaGiamGia" asp-route-ma="@item.MaGiamGia_Code" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i> Sửa</a>
+                                        <form asp-action="XoaMaGiamGia" method="post" class="d-inline"
+                                              data-hoi="Xóa mã giảm giá @item.MaGiamGia_Code?" onsubmit="return confirm(this.dataset.hoi);">
+                                            <input type="hidden" name="ma" value="@item.MaGiamGia_Code" />
+                                            <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-trash"></i> Xóa</button>
+                                        </form>
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="@(laQuanLy ? 8 : 6)" class="text-muted">@(tatCa ? "Chưa có mã giảm giá nào." : "Không có mã giảm giá nào còn hiệu lực.")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (laQuanLy)
+        {
+            <p class="small text-muted mb-0">
+                Xóa mã đã dùng trong hóa đơn sẽ chỉ ngừng sử dụng mã (giữ lại để tra cứu hóa đơn cũ).
+                Muốn tạm dừng một mã, bấm Sửa và đặt số lượng = 0.
+            </p>
+        }
+    </div>
+</div>

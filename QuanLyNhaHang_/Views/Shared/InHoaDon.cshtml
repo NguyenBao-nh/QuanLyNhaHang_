@@ -1,0 +1,126 @@
+﻿@model HoaDonInViewModel
+@{
+    Layout = null;
+    var hd = Model.HoaDon;
+    bool tuIn = Context.Request.Query["auto"] == "1";
+    string nhanGiam = string.IsNullOrWhiteSpace(hd.Magiamgia) ? "Giảm giá:" : "Giảm giá (" + hd.Magiamgia.Trim() + "):";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Hóa đơn @hd.Mahoadon.Trim() - FREEDOM</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #ececec; font-family: "Segoe UI", Arial, sans-serif; color: #222; }
+        .thanh-cong-cu { display: flex; justify-content: center; gap: 10px; padding: 16px; }
+        .thanh-cong-cu button {
+            padding: 10px 22px; border: 0; border-radius: 6px; font-size: 15px; cursor: pointer;
+        }
+        .btn-in { background: #ff8d25; color: #fff; font-weight: 600; }
+        .btn-dong { background: #6c757d; color: #fff; }
+        .hoa-don {
+            width: 80mm; max-width: 100%; margin: 0 auto 30px; background: #fff; padding: 18px 16px 24px;
+            box-shadow: 0 4px 18px rgba(0,0,0,.15); font-size: 13px; line-height: 1.45;
+        }
+        .tieu-de { text-align: center; }
+        .tieu-de h1 { margin: 0; font-size: 22px; letter-spacing: 2px; }
+        .tieu-de p { margin: 2px 0; font-size: 12px; color: #555; }
+        .ten-hd { text-align: center; font-weight: 700; font-size: 15px; margin: 12px 0 8px; text-transform: uppercase; }
+        .ngang { border-top: 1px dashed #999; margin: 10px 0; }
+        .dong { display: flex; justify-content: space-between; gap: 8px; }
+        .dong span:first-child { color: #555; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; font-size: 12px; border-bottom: 1px solid #333; padding: 4px 0; }
+        td { padding: 4px 0; vertical-align: top; }
+        .phai { text-align: right; white-space: nowrap; }
+        .giua { text-align: center; }
+        .tong { font-size: 16px; font-weight: 700; }
+        .cam-on { text-align: center; margin-top: 14px; font-style: italic; }
+        @@media print {
+            @@page { size: 80mm auto; margin: 4mm; }
+            body { background: #fff; }
+            .thanh-cong-cu { display: none; }
+            .hoa-don { box-shadow: none; margin: 0; width: 100%; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="thanh-cong-cu">
+        <button type="button" class="btn-in" onclick="window.print()">🖨 In hóa đơn</button>
+        <button type="button" class="btn-dong" onclick="dong()">Đóng</button>
+    </div>
+
+    <div class="hoa-don">
+        <div class="tieu-de">
+            <h1>FREEDOM</h1>
+            <p>Nhà hàng chay</p>
+            <p>88 Láng Hạ, Đống Đa, Hà Nội</p>
+            <p>ĐT: 0989187077 · FREEDOM@@outlook.com</p>
+        </div>
+
+        <div class="ten-hd">Hóa đơn thanh toán</div>
+
+        <div class="dong"><span>Số HĐ:</span><b>@hd.Mahoadon.Trim()</b></div>
+        <div class="dong"><span>Ngày:</span><span>@hd.Ngaylap?.ToString("dd/MM/yyyy HH:mm")</span></div>
+        <div class="dong"><span>Bàn:</span><span>@(string.IsNullOrWhiteSpace(hd.Maban) ? "-" : hd.Maban.Trim())</span></div>
+        <div class="dong"><span>Thu ngân:</span><span>@(Model.NhanVien?.Hoten ?? "Thanh toán online")</span></div>
+        <div class="dong"><span>Khách hàng:</span><span>@(Model.Khach?.Hoten ?? "Khách lẻ")</span></div>
+        @if (Model.Khach != null)
+        {
+            <div class="dong"><span>Mã KH / SĐT:</span><span>@Model.Khach.Makh.Trim() · @Model.Khach.Sodt?.Trim()</span></div>
+        }
+
+        <div class="ngang"></div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Món</th>
+                    <th class="giua">SL</th>
+                    <th class="phai">Đơn giá</th>
+                    <th class="phai">T.Tiền</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var ct in Model.ChiTiet)
+                {
+                    <tr>
+                        <td>@(ct.MamonanNavigation?.Tenmon ?? ct.Mamonan.Trim())</td>
+                        <td class="giua">@ct.Soluong</td>
+                        <td class="phai">@((ct.MamonanNavigation?.Gia ?? 0).ToString("N0"))</td>
+                        <td class="phai">@((ct.Thanhtien ?? 0).ToString("N0"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="ngang"></div>
+
+        <div class="dong"><span>Tổng tiền món:</span><span>@Model.TongTienMon.ToString("N0") đ</span></div>
+        <div class="dong">
+            <span>@nhanGiam</span>
+            <span>-@Model.GiamGia.ToString("N0") đ</span>
+        </div>
+        <div class="dong tong"><span style="color:#222">THANH TOÁN:</span><span>@Model.DaThanhToan.ToString("N0") đ</span></div>
+        <div class="dong"><span>Hình thức:</span><span>@(hd.Hinhthuc ?? "-")</span></div>
+
+        <div class="ngang"></div>
+        <div class="cam-on">Cảm ơn quý khách và hẹn gặp lại!</div>
+        <div class="giua" style="font-size:11px; color:#777; margin-top:6px">In lúc @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+
+    <script>
+        function dong() {
+            // Trang được mở ở tab mới -> đóng tab; nếu không đóng được thì quay lại
+            window.close();
+            setTimeout(function () { history.back(); }, 150);
+        }
+        @if (tuIn)
+        {
+            <text>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 300); });</text>
+        }
+    </script>
+</body>
+</html>

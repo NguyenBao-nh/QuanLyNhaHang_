@@ -1,0 +1,283 @@
+﻿@model QuanLyNhaHang_.Models.PhieuDatBan
+@{
+    ViewData["Title"] = "Đặt Bàn & Đặt Chỗ";
+    Layout = "~/Views/Shared/layout_user.cshtml";
+
+    // Tối đa 20 khách / 1 lần đặt (DatBanController cũng kiểm tra 1-20)
+    var dsSoNguoi = Enumerable.Range(1, 20)
+        .Select(i => new SelectListItem { Value = i.ToString(), Text = i + " Người" })
+        .ToList();
+
+    // Các khung giờ từ 08:00 đến 20:00, cách nhau 30 phút
+    var dsGio = new List<SelectListItem>();
+    for (var t = new TimeSpan(8, 0, 0); t <= new TimeSpan(20, 0, 0); t = t.Add(TimeSpan.FromMinutes(30)))
+    {
+        var gio = t.ToString(@"hh\:mm");
+        dsGio.Add(new SelectListItem { Value = gio, Text = gio });
+    }
+}
+
+<style>
+    /* Trang đặt bàn: chừa chỗ cho thanh menu, nằm trên footer để danh sách chọn không bị che */
+    .booking-page {
+        position: relative;
+        z-index: 5;
+        padding: 190px 0 120px;
+        background: url(/assets/img/banner-bg-dark.jpg) center / cover no-repeat;
+    }
+    .booking-page::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: #070708;
+        opacity: .78;
+    }
+    .booking-page .sub-title { font-size: 48px; }
+    .booking-intro { color: #d6d6d6; max-width: 640px; margin: 15px auto 0; }
+    .booking-card {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 45px 50px 40px;
+        background: rgba(18, 18, 20, .82);
+        border: 1px solid rgba(255, 141, 37, .35);
+        border-radius: 18px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .45);
+    }
+    .booking-card h4 {
+        color: #ff8d25;
+        font-size: 18px;
+        margin: 0 0 18px;
+        padding-bottom: 10px;
+        border-bottom: 1px dashed rgba(255, 255, 255, .2);
+    }
+    .booking-card label {
+        display: block;
+        color: #fff;
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 8px;
+    }
+    .booking-card label i { color: #ff8d25; margin-right: 6px; }
+    .booking-card .form-group { margin-bottom: 26px; }
+    .booking-card .form-control,
+    .booking-card .nice-select {
+        width: 100%;
+        height: 54px;
+        line-height: 52px;
+        padding: 0 18px;
+        color: #fff;
+        font-size: 15px;
+        background: rgba(255, 255, 255, .06);
+        border: 1px solid rgba(255, 255, 255, .3);
+        border-radius: 10px;
+        float: none;
+    }
+    .booking-card .form-control::placeholder { color: #bdbdbd; }
+    .booking-card .form-control:focus,
+    .booking-card .nice-select.open,
+    .booking-card .nice-select:focus {
+        border-color: #ff8d25;
+        background: rgba(255, 255, 255, .1);
+        box-shadow: none;
+        color: #fff;
+    }
+    .booking-card .nice-select .current { color: #fff; font-size: 15px; font-weight: 400; }
+    .booking-card .nice-select .list {
+        width: 100%;
+        max-height: 260px;
+        overflow-y: auto;
+        z-index: 50;
+    }
+    .booking-card .nice-select .list li:first-of-type { display: none; }  /* ẩn dòng "Chọn ..." */
+    .booking-card .nice-select .option { color: #333; line-height: 40px; min-height: 40px; }
+    .booking-card .default-btn {
+        display: block;
+        width: 100%;
+        max-width: 360px;
+        margin: 10px auto 0;
+        padding: 16px 30px;
+        font-size: 17px;
+        border-radius: 30px;
+    }
+    .booking-info {
+        max-width: 1100px;
+        margin: 30px auto 0;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+    .booking-info div {
+        padding: 18px 20px;
+        color: #e5e5e5;
+        background: rgba(18, 18, 20, .7);
+        border-radius: 12px;
+        border-left: 3px solid #ff8d25;
+        text-align: left;
+    }
+    .booking-info strong { display: block; color: #fff; margin-bottom: 4px; }
+    .booking-info i { color: #ff8d25; margin-right: 6px; }
+    @@media (max-width: 767px) {
+        .booking-page { padding: 140px 0 80px; }
+        .booking-card { padding: 30px 20px; }
+        .booking-info { grid-template-columns: 1fr; }
+    }
+</style>
+
+<section class="booking-page">
+    <div class="container">
+        <div class="section-title" style="margin-bottom: 40px;">
+            <h6 class="sub-title">Đặt Bàn &amp; Đặt Chỗ</h6>
+            <p class="booking-intro">Giữ chỗ trước để FREEDOM chuẩn bị bàn chu đáo cho bạn và người thân. Nhận đặt bàn từ 1 đến 20 khách.</p>
+        </div>
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="alert alert-danger" style="max-width:1100px; margin: 0 auto 20px;">
+                <ul class="mb-0">
+                    @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@err.ErrorMessage</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form method="post" asp-controller="DatBan" asp-action="DatBan1" id="reservation-form" class="form booking-card" autocomplete="off" novalidate>
+            <h4><i class="fa-solid fa-calendar-check"></i> Thông tin đặt bàn</h4>
+            <div class="row">
+                <div class="col-lg-4 col-md-6">
+                    <div class="form-group">
+                        <label for="Soluong"><i class="fa-solid fa-user-group"></i>Số người</label>
+                        @Html.DropDownListFor(m => m.Soluong, dsSoNguoi, "Chọn số người", new { @class = "form-control wide", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="form-group">
+                        <label for="datepicker"><i class="fa-solid fa-calendar-days"></i>Ngày đặt</label>
+                        @Html.TextBoxFor(m => m.Ngaydat, "{0:yyyy-MM-dd}", new { @id = "datepicker", @class = "form-control reservation-date", @placeholder = "Chọn ngày", @autocomplete = "off", @required = "required" })
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-12">
+                    <div class="form-group">
+                        <label for="timepicker"><i class="fa-solid fa-clock"></i>Giờ đặt</label>
+                        @Html.DropDownListFor(m => m.Giodat, dsGio, "Chọn giờ đặt", new { @class = "form-control wide", @id = "timepicker", @required = "required" })
+                    </div>
+                </div>
+            </div>
+
+            <h4 class="mt-2"><i class="fa-solid fa-address-card"></i> Thông tin liên hệ</h4>
+            <div class="row">
+                <div class="col-lg-4 col-md-6">
+                    <div class="form-group">
+                        <label for="Tenkh"><i class="fa-solid fa-user"></i>Tên khách hàng</label>
+                        @Html.TextBoxFor(m => m.Tenkh, new { @class = "form-control", @placeholder = "Nguyễn Văn A", @required = "required", @maxlength = "50" })
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="form-group">
+                        <label for="Email"><i class="fa-solid fa-envelope"></i>Email</label>
+                        @Html.TextBoxFor(m => m.Email, new { @class = "form-control", @placeholder = "email@example.com", @type = "email", @required = "required", @maxlength = "50" })
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-12">
+                    <div class="form-group">
+                        <label for="Sdt"><i class="fa-solid fa-phone"></i>Số điện thoại</label>
+                        @Html.TextBoxFor(m => m.Sdt, new { @class = "form-control", @placeholder = "09xxxxxxxx", @required = "required", @maxlength = "11", @pattern = "[0-9]{9,11}", @title = "Số điện thoại gồm 9-11 chữ số" })
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="default-btn">Đặt Bàn Ngay <span></span></button>
+        </form>
+
+        <div class="booking-info">
+            <div><strong><i class="fa-solid fa-clock"></i>Giờ mở cửa</strong>Thứ 2 - Thứ 6: 09:00 – 22:00<br />Thứ 7, Chủ nhật: 08:00 – 22:00</div>
+            <div><strong><i class="fa-solid fa-envelope-open-text"></i>Xác nhận qua email</strong>Sau khi đặt, bạn sẽ nhận email xác nhận thông tin bàn.</div>
+            <div><strong><i class="fa-solid fa-phone"></i>Nhóm trên 20 người</strong>Vui lòng gọi <a href="tel:0989187077" style="color:#ff8d25">0989187077</a> để được sắp xếp riêng.</div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+    // Chạy sau khi layout_user đã nạp jQuery, jQuery UI và SweetAlert2 (section nằm cuối trang).
+    // Lưu ý: nice-select ẩn các <select>, nên ô "required" bị ẩn sẽ khiến trình duyệt chặn submit mà không báo gì.
+    // Vì vậy form dùng novalidate và tự kiểm tra bên dưới (server vẫn kiểm tra lại).
+    (function ($) {
+        $("#datepicker").datepicker({
+            dateFormat: "yy-mm-dd",
+            minDate: 0,
+            onSelect: function () { validateDateAndTime(); }
+        });
+
+        $("#timepicker").on("change", validateDateAndTime);
+
+        function validateDateAndTime() {
+            var selectedDate = $("#datepicker").val();
+            var selectedTime = $("#timepicker").val();
+
+            if (!selectedDate || !selectedTime) return true;
+
+            var selectedDateTime = new Date(selectedDate + "T" + selectedTime);
+
+            if (selectedDateTime <= new Date()) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Thời gian không hợp lệ",
+                    text: "Vui lòng chọn ngày và giờ trong tương lai!"
+                });
+                $("#timepicker").val("");
+                if ($.fn.niceSelect) $("#timepicker").niceSelect("update");
+                return false;
+            }
+            return true;
+        }
+
+        function thieuThongTin() {
+            var truong = [
+                ["#Soluong", "số người"], ["#datepicker", "ngày đặt"], ["#timepicker", "giờ đặt"],
+                ["#Tenkh", "tên khách hàng"], ["#Email", "email"], ["#Sdt", "số điện thoại"]
+            ];
+            var thieu = [];
+            truong.forEach(function (t) {
+                if (!($.trim($(t[0]).val()))) thieu.push(t[1]);
+            });
+            return thieu;
+        }
+
+        var isConfirmedSubmit = false;
+        $("#reservation-form").on("submit", function (event) {
+            if (isConfirmedSubmit) return true;
+
+            event.preventDefault();
+
+            var thieu = thieuThongTin();
+            if (thieu.length) {
+                Swal.fire({ icon: "warning", title: "Chưa đủ thông tin", text: "Vui lòng nhập: " + thieu.join(", ") + "." });
+                return;
+            }
+            if (!/^\d{9,11}$/.test($.trim($("#Sdt").val()))) {
+                Swal.fire({ icon: "warning", title: "Số điện thoại không hợp lệ", text: "Số điện thoại gồm 9-11 chữ số." });
+                return;
+            }
+            if (!validateDateAndTime()) return;
+
+            Swal.fire({
+                title: "Xác nhận đặt bàn?",
+                text: "Bạn có chắc chắn muốn gửi thông tin đặt bàn này?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: "Xác nhận",
+                cancelButtonText: "Hủy"
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    isConfirmedSubmit = true;
+                    // submit gốc của form để không chạy lại handler ở trên
+                    document.getElementById("reservation-form").submit();
+                }
+            });
+        });
+    })(window.jQuery);
+</script>
+}

@@ -1,0 +1,292 @@
+﻿@{
+    ViewData["Title"] = "Xuất Hóa Đơn";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+
+    var view = (ViewThanhToan)ViewBag.view;
+    var hd = view.HoaDon;
+    var kh = ViewBag.kh as KhachHang;
+    int giam = (int)ViewBag.GiaTriGiam;
+    string maGiamGiaHopLe = hd.Magiamgia?.Trim() ?? "";
+    string maGiamGiaNhap = ((string?)ViewBag.MaGG)?.Trim() ?? "";
+    var caDangMo = ViewBag.CaDangMo as CaLamViec;
+}
+
+@if (caDangMo == null)
+{
+    <div class="alert alert-warning mt-3">
+        Chưa mở ca làm việc - không thanh toán được.
+        <a asp-controller="Admin_Ca" asp-action="Index" target="_blank" class="btn btn-sm btn-warning ms-2">Mở ca</a>
+    </div>
+}
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Thông Tin Khách Hàng</h5>
+                </div>
+                <div class="card-body">
+                    @if (kh == null)
+                    {
+                        var tenVL = ViewBag.TenKhachPhieu as string;
+                        if (!string.IsNullOrWhiteSpace(tenVL))
+                        {
+                            <p><strong>Tên Khách Hàng:</strong> @tenVL <span class="badge bg-secondary">Khách vãng lai</span></p>
+                            <p class="mb-0"><strong>SDT Khách Hàng:</strong> @(ViewBag.SdtKhachPhieu as string ?? "-")</p>
+                        }
+                        else
+                        {
+                            <p class="text-muted mb-0">Khách vãng lai (không tìm thấy khách hàng theo số điện thoại)</p>
+                        }
+                    }
+                    else
+                    {
+                        <p><strong>Mã Khách Hàng:</strong> @kh.Makh.Trim()</p>
+                        <p><strong>Tên Khách Hàng:</strong> @kh.Hoten</p>
+                        <p class="mb-0"><strong>SDT Khách Hàng:</strong> @kh.Sodt?.Trim()</p>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Thông Tin Thêm</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Mã Bàn:</strong> @hd.Maban</p>
+                    <p><strong>Mã Nhân Viên:</strong> @Context.Session.GetString("MaNV")</p>
+                    <p class="mb-0"><strong>Tên Nhân Viên:</strong> @Context.Session.GetString("HoTen")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Thông Tin Hóa Đơn</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Mã Hóa Đơn:</strong> @hd.Mahoadon</p>
+                    <p><strong>Hình thức thanh toán:</strong> chọn Tiền mặt / Chuyển khoản khi bấm "Thanh Toán"</p>
+                    <p class="mb-0"><strong>Thời gian lập:</strong> @hd.Ngaylap</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm text-end">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">Tổng Thanh Toán</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Tổng Tiền:</strong> @view.TongTien.ToString("N0") VNĐ</p>
+                    <p>
+                        <strong>Mã giảm giá:</strong>
+                        @if (maGiamGiaHopLe != "") { @maGiamGiaHopLe }
+                        else if (maGiamGiaNhap != "") { <span class="text-danger">@maGiamGiaNhap (không hợp lệ / đã hết hạn)</span> }
+                        else { <span class="text-muted">Không áp dụng</span> }
+                    </p>
+                    <p><strong>Giảm Giá:</strong> @giam.ToString("N0") VNĐ</p>
+                    @if (view.TongPhuPhi > 0)
+                    {
+                        <p class="text-warning"><strong>Phụ phí / Bồi thường:</strong> @view.TongPhuPhi.ToString("N0") VNĐ</p>
+                    }
+                    <h5 class="mb-0"><strong>Khách Phải Trả:</strong> @view.SoTienSauGiamGia.ToString("N0") VNĐ</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">Chi Tiết Hóa Đơn</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-bordered">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Tên Món</th>
+                                    <th>Số Lượng</th>
+                                    <th>Đơn Giá</th>
+                                    <th>Thành Tiền</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var cthd in view.ChiTietHoaDonList)
+                                {
+                                    <tr>
+                                        <td>@cthd.MamonanNavigation?.Tenmon</td>
+                                        <td>@cthd.Soluong</td>
+                                        <td>@((cthd.MamonanNavigation?.Gia ?? 0).ToString("N0")) VNĐ</td>
+                                        <td>@((cthd.Thanhtien ?? 0).ToString("N0")) VNĐ</td>
+                                    </tr>
+                                }
+                                @foreach (var pp in view.PhuPhiList)
+                                {
+                                    <tr class="table-warning">
+                                        <td colspan="2"><i class="bi bi-receipt"></i> Phụ phí / bồi thường: @pp.Noidung</td>
+                                        <td></td>
+                                        <td>@pp.Sotien.ToString("N0") VNĐ</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12 text-end">
+            <form asp-action="ThanhToan" asp-controller="PhieuGoiMon" method="post" id="formThanhToan">
+                <input type="hidden" name="MaHD" value="@hd.Mahoadon" />
+                <input type="hidden" name="MaBan" value="@hd.Maban" />
+                <input type="hidden" name="MaKH" value="@hd.Makh" />
+                <input type="hidden" name="MaNV" value="@hd.Manv" />
+                <input type="hidden" name="MaGG" value="@maGiamGiaHopLe" />
+                <input type="hidden" name="HinhThuc" id="hinhThucChon" value="" />
+                <input type="hidden" name="TienKhachDua" id="tienKhachDuaGui" value="" />
+                <input type="hidden" name="MaPh" value="@ViewBag.MaP" />
+                @foreach (var cthd in view.ChiTietHoaDonList)
+                {
+                    <input type="hidden" name="MaMonAn[]" value="@cthd.Mamonan.Trim()" />
+                    <input type="hidden" name="SoLuong[]" value="@cthd.Soluong" />
+                }
+                <a href="javascript:history.back()" class="btn btn-secondary btn-lg rounded-pill">Quay lại</a>
+                <button type="button" class="btn btn-success btn-lg shadow-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#modalThanhToan"
+                        @(caDangMo == null ? "disabled" : "")>
+                    <i class="bi bi-cash-coin"></i> Thanh Toán
+                </button>
+            </form>
+
+            @* Hộp chọn hình thức thanh toán: Tiền mặt (cộng vào két) / Chuyển khoản (QR) *@
+            <div class="modal fade text-start" id="modalThanhToan" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Thanh toán hóa đơn @hd.Mahoadon - <span class="text-danger">@view.SoTienSauGiamGia.ToString("N0") đ</span></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+                        </div>
+                        <div class="modal-body">
+                            <ul class="nav nav-pills nav-fill mb-3" role="tablist">
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link active fs-5" data-bs-toggle="pill" data-bs-target="#ttTienMat">
+                                        <i class="bi bi-cash-stack"></i> Tiền mặt
+                                    </button>
+                                </li>
+                                <li class="nav-item">
+                                    <button type="button" class="nav-link fs-5" data-bs-toggle="pill" data-bs-target="#ttChuyenKhoan">
+                                        <i class="bi bi-qr-code"></i> Chuyển khoản
+                                    </button>
+                                </li>
+                            </ul>
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="ttTienMat">
+                                    <div class="row g-3 align-items-end">
+                                        <div class="col-md-6">
+                                            <label for="tienKhachDua" class="form-label"><strong>Tiền khách đưa (đ)</strong></label>
+                                            <input type="number" id="tienKhachDua" class="form-control form-control-lg" min="0" step="1000"
+                                                   placeholder="@view.SoTienSauGiamGia.ToString("N0")" />
+                                            <div class="mt-2 d-flex flex-wrap gap-1" id="goiYTien"></div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="p-3 bg-light rounded">
+                                                <div>Khách phải trả: <strong>@view.SoTienSauGiamGia.ToString("N0") đ</strong></div>
+                                                <div class="fs-5">Tiền thối: <strong id="tienThoi" class="text-danger">0</strong> đ</div>
+                                                <div id="thieuTien" class="text-danger small d-none">Tiền khách đưa chưa đủ.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <p class="small text-muted mt-2 mb-3">Số tiền hóa đơn được cộng vào két của ca đang mở. Để trống "Tiền khách đưa" nếu khách đưa vừa đủ.</p>
+                                    <button type="button" class="btn btn-success btn-lg w-100" id="nutTienMat" data-ht="@HinhThucThanhToan.TienMat">
+                                        <i class="bi bi-check2-circle"></i> Xác nhận đã thu tiền mặt
+                                    </button>
+                                </div>
+                                <div class="tab-pane fade" id="ttChuyenKhoan">
+                                    <div class="row g-3 align-items-center">
+                                        <div class="col-md-5 text-center">
+                                            <img src="https://api.vieqr.com/vietqr/VietinBank/113366668888/@view.SoTienSauGiamGia/full.jpg?NDck=@hd.Mahoadon&FullName=Nha%20Hang%20FREEDOM"
+                                                 alt="QR chuyển khoản" class="img-fluid rounded border" style="max-height:300px" />
+                                        </div>
+                                        <div class="col-md-7">
+                                            <p class="mb-1">Ngân hàng: <strong>VietinBank</strong></p>
+                                            <p class="mb-1">Số tài khoản: <strong>113366668888</strong> - Nhà hàng FREEDOM</p>
+                                            <p class="mb-1">Số tiền: <strong class="text-danger">@view.SoTienSauGiamGia.ToString("N0") đ</strong></p>
+                                            <p class="mb-3">Nội dung: <strong>@hd.Mahoadon</strong></p>
+                                            <p class="small text-muted">Cho khách quét mã QR. Chỉ bấm xác nhận khi tài khoản đã nhận đủ tiền. Chuyển khoản không cộng vào két tiền mặt.</p>
+                                            <button type="button" class="btn btn-primary btn-lg w-100" id="nutChuyenKhoan"
+                                                    data-ht="@HinhThucThanhToan.ChuyenKhoan" data-hoi="Tài khoản đã nhận đủ @view.SoTienSauGiamGia.ToString("N0")đ với nội dung @hd.Mahoadon?">
+                                                <i class="bi bi-check2-circle"></i> Đã nhận tiền chuyển khoản
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var phaiTra = @view.SoTienSauGiamGia;
+            var form = document.getElementById('formThanhToan');
+            var modal = document.getElementById('modalThanhToan');
+            // Đưa hộp thoại ra thẳng <body> để không bị khung giao diện admin / lớp nền mờ che (bấm không được)
+            if (modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+            var o = document.getElementById('tienKhachDua');
+            var daGui = false;
+
+            function capNhat() {
+                var dua = parseInt(o.value || '0', 10) || 0;
+                document.getElementById('tienThoi').textContent = (dua > phaiTra ? dua - phaiTra : 0).toLocaleString('vi-VN');
+                document.getElementById('thieuTien').classList.toggle('d-none', !(dua > 0 && dua < phaiTra));
+            }
+            o.addEventListener('input', capNhat);
+
+            // Gợi ý mệnh giá khách hay đưa
+            var goiY = [phaiTra];
+            [50000, 100000, 200000, 500000].forEach(function (m) {
+                var lam = Math.ceil(phaiTra / m) * m;
+                if (lam > phaiTra && goiY.indexOf(lam) < 0 && goiY.length < 5) goiY.push(lam);
+            });
+            goiY.forEach(function (v) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'btn btn-sm btn-outline-secondary';
+                b.textContent = v.toLocaleString('vi-VN');
+                b.onclick = function () { o.value = v; capNhat(); };
+                document.getElementById('goiYTien').appendChild(b);
+            });
+
+            function gui(hinhThuc, tienDua) {
+                if (daGui) return;
+                daGui = true;
+                document.getElementById('hinhThucChon').value = hinhThuc;
+                document.getElementById('tienKhachDuaGui').value = tienDua || '';
+                document.querySelectorAll('#modalThanhToan button').forEach(function (b) { b.disabled = true; });
+                HTMLFormElement.prototype.submit.call(form);   // gửi thẳng form, không qua script chống bấm 2 lần
+            }
+
+            document.getElementById('nutTienMat').addEventListener('click', function () {
+                var dua = parseInt(o.value || '0', 10) || 0;
+                if (dua > 0 && dua < phaiTra) { capNhat(); o.focus(); return; }
+                gui(this.dataset.ht, dua);   // data-ht = "Tiền mặt" (đọc từ thuộc tính để giữ đúng chữ có dấu)
+            });
+            document.getElementById('nutChuyenKhoan').addEventListener('click', function () {
+                if (confirm(this.dataset.hoi)) gui(this.dataset.ht, '');
+            });
+        })();
+    </script>
+}

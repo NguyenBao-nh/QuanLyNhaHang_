@@ -1,0 +1,23 @@
+﻿@model DanhGia
+@{
+    ViewData["Title"] = "Xóa đánh giá";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+}
+
+<div class="container mt-5" style="max-width: 600px">
+    <h2 class="text-danger text-center mb-4">Xóa đánh giá?</h2>
+
+    <div class="card mb-4">
+        <div class="card-body">
+            <p><strong>Mã đánh giá:</strong> @Model.Madanhgia.Trim()</p>
+            <p><strong>Mã hóa đơn:</strong> @Model.Mahoadon?.Trim()</p>
+            <p class="mb-0"><strong>Nội dung:</strong> @Model.Danhgia</p>
+        </div>
+    </div>
+
+    <form asp-action="Delete" method="post" class="d-flex justify-content-between">
+        <input type="hidden" name="id" value="@Model.Madanhgia.Trim()" />
+        <a asp-action="ShowDanhGia" class="btn btn-secondary">Quay lại</a>
+        <button type="submit" class="btn btn-danger">Xác nhận xóa</button>
+    </form>
+</div>

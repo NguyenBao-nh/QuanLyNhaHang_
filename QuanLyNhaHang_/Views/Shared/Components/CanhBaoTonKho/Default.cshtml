@@ -1,0 +1,28 @@
+﻿@model List<NguyenLieu>
+@{
+    int muc = (int)ViewBag.MucToiThieu;
+    var het = Model.Where(n => (n.Soluongton ?? 0) <= 0).ToList();
+    var sapHet = Model.Where(n => (n.Soluongton ?? 0) > 0).ToList();
+    string Ten(NguyenLieu n) => $"{n.Tennguyenlieu} ({n.Soluongton ?? 0} {n.Dvt})";
+}
+@if (Model.Any())
+{
+    <div class="alert @(het.Any() ? "alert-danger" : "alert-warning") d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3" role="alert">
+        <div>
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            <strong>Cảnh báo tồn kho: cần nhập hàng ngay!</strong>
+            @if (het.Any())
+            {
+                <div class="small"><strong>Hết hàng (@het.Count):</strong> @string.Join(", ", het.Select(Ten))</div>
+            }
+            @if (sapHet.Any())
+            {
+                <div class="small"><strong>Sắp hết - tồn ≤ @muc (@sapHet.Count):</strong> @string.Join(", ", sapHet.Select(Ten))</div>
+            }
+        </div>
+        <div class="text-nowrap">
+            <a asp-controller="Admin_NguyenLieu" asp-action="HienThiNguyenLieu" class="btn btn-sm btn-outline-dark">Xem tồn kho</a>
+            <a asp-controller="Admin_HoaDon" asp-action="ThemHoaDon" class="btn btn-sm btn-dark"><i class="bi bi-box-arrow-in-down"></i> Nhập hàng ngay</a>
+        </div>
+    </div>
+}

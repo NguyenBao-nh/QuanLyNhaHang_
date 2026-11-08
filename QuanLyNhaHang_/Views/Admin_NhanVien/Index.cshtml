@@ -1,0 +1,102 @@
+﻿@model List<DongNhanVien>
+@{
+    ViewData["Title"] = "Nhân viên";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    string? maNVDangNhap = ViewBag.MaNVDangNhap as string;
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <h2 class="m-0" style="color:#fa8f23"><i class="bi bi-people"></i> Nhân viên</h2>
+        <a asp-action="Them" class="btn btn-success"><i class="bi bi-person-plus"></i> Thêm nhân viên</a>
+    </div>
+
+    @if (TempData["ThongBaoNV"] != null)
+    {
+        <div class="alert alert-success">@TempData["ThongBaoNV"]</div>
+    }
+    @if (TempData["LoiNV"] != null)
+    {
+        <div class="alert alert-danger">@TempData["LoiNV"]</div>
+    }
+
+    <form asp-action="Index" method="get" class="d-flex gap-2 mb-3" style="max-width:520px">
+        <input type="text" name="q" value="@ViewBag.Q" class="form-control" placeholder="Tìm theo mã, tên, chức vụ, SĐT, tên đăng nhập..." />
+        <button type="submit" class="btn btn-primary text-nowrap">Tìm</button>
+        @if (!string.IsNullOrEmpty(ViewBag.Q as string))
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary text-nowrap">Bỏ lọc</a>
+        }
+    </form>
+
+    <div class="card">
+        <div class="card-body table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Mã NV</th>
+                        <th>Họ tên</th>
+                        <th>Chức vụ</th>
+                        <th>SĐT</th>
+                        <th class="text-end">Lương</th>
+                        <th class="text-end">Giờ làm</th>
+                        <th>Tài khoản</th>
+                        <th>Quyền</th>
+                        <th class="text-center" style="width:150px">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Count == 0)
+                    {
+                        <tr><td colspan="9" class="text-center text-muted">Không có nhân viên nào.</td></tr>
+                    }
+                    @foreach (var d in Model)
+                    {
+                        var nv = d.NhanVien;
+                        string ma = nv.Manv.Trim();
+                        bool laToi = string.Equals(ma, maNVDangNhap, StringComparison.OrdinalIgnoreCase);
+                        <tr>
+                            <td><strong>@ma</strong></td>
+                            <td>@nv.Hoten @if (laToi) { <span class="badge bg-info ms-1">Bạn</span> }</td>
+                            <td>@nv.Chucvu</td>
+                            <td>@nv.Sodt?.Trim()</td>
+                            <td class="text-end">@(nv.Luong?.ToString("N0") ?? "-")</td>
+                            <td class="text-end">@(nv.Sogiolam ?? 0)</td>
+                            <td>
+                                @(d.Tendangnhap ?? "(chưa có)")
+                                @if (!string.IsNullOrEmpty(d.Email)) { <div class="small text-muted">@d.Email</div> }
+                            </td>
+                            <td>
+                                @if (d.LaQuanLy)
+                                {
+                                    <span class="badge bg-danger">Quản lý</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">Nhân viên</span>
+                                }
+                                <div class="small text-muted">@d.Tenquyen</div>
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="Sua" asp-route-id="@ma" class="btn btn-sm btn-outline-primary" title="Sửa"><i class="bi bi-pencil"></i></a>
+                                @if (!laToi)
+                                {
+                                    <form asp-action="Xoa" method="post" class="d-inline"
+                                          onsubmit="return confirm('Xóa nhân viên @ma - @nv.Hoten? Tài khoản đăng nhập của nhân viên cũng bị xóa.');">
+                                        <input type="hidden" name="id" value="@ma" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <p class="small text-muted mb-0">
+                Quyền <strong>Quản lý</strong> chỉ có: Tổng quan (số khách hôm nay), Doanh thu theo tháng và so sánh tháng, Nhân viên, Món ăn và Mã giảm giá (thêm / sửa / xóa), Đánh giá.
+                Quyền <strong>Nhân viên</strong> dùng mọi chức năng bán hàng, kho, ca làm việc, quỹ (doanh thu theo ngày), xem món ăn và mã giảm giá; không có Đánh giá, doanh thu tháng và không thêm / sửa / xóa món ăn, mã giảm giá.
+                Thay đổi quyền có hiệu lực từ lần đăng nhập tiếp theo của nhân viên đó.
+            </p>
+        </div>
+    </div>
+</div>

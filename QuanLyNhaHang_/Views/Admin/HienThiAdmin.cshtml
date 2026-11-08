@@ -1,0 +1,131 @@
+﻿@{
+    ViewData["Title"] = "Tổng quan";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+
+    string So(object? v) => v == null ? "—" : string.Format("{0:N0}", v);
+    var ten = Context.Session.GetString("HoTen") ?? "bạn";
+    bool laQuanLy = ViewBag.LaQuanLy is bool b && b;
+}
+
+<div class="container-fluid mt-4">
+    <h3 class="mb-1">Xin chào, @ten!</h3>
+    <p class="text-muted mb-4">
+        Bạn đang đăng nhập với vai trò <strong>@(laQuanLy ? "Quản lý" : "Nhân viên")</strong>.
+        Chọn một chức năng bên dưới hoặc dùng menu bên trái.
+    </p>
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-warning"><i class="bi bi-shield-lock"></i> @TempData["ErrorMessage"]</div>
+    }
+
+    @if (laQuanLy)
+    {
+        @* ================= TỔNG QUAN CỦA QUẢN LÝ ================= *@
+        <div class="row gx-4">
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4 border-primary"><div class="card-body">
+                    <h2 class="m-0 text-primary">@So((object?)ViewBag.HoaDonHomNay)</h2>
+                    <p class="m-0 opacity-50">Khách hôm nay</p>
+                </div></div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4"><div class="card-body">
+                    <h2 class="m-0">@So((object?)ViewBag.DoanhThuThangNay) đ</h2>
+                    <p class="m-0 opacity-50">Doanh thu tháng @DateTime.Today.Month/@DateTime.Today.Year</p>
+                </div></div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4"><div class="card-body">
+                    <h2 class="m-0">@So((object?)ViewBag.SoNhanVien)</h2>
+                    <p class="m-0 opacity-50">Nhân viên</p>
+                </div></div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4"><div class="card-body">
+                    <h2 class="m-0">@So((object?)ViewBag.SoDanhGia)</h2>
+                    <p class="m-0 opacity-50">Đánh giá (@So((object?)ViewBag.DanhGiaChuaTraLoi) chưa trả lời)</p>
+                </div></div>
+            </div>
+        </div>
+    }
+    else
+    {
+        @* ================= TỔNG QUAN CỦA NHÂN VIÊN (như ban đầu) ================= *@
+        <div class="row gx-4">
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4"><div class="card-body">
+                    <h2 class="m-0">@So((object?)ViewBag.DoanhThuHomNay) đ</h2><p class="m-0 opacity-50">Doanh thu hôm nay (@So((object?)ViewBag.HoaDonHomNay) hóa đơn)</p>
+                </div></div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4"><div class="card-body">
+                    <h2 class="m-0">@So((object?)ViewBag.BanTrong) / @So((object?)ViewBag.TongBan)</h2><p class="m-0 opacity-50">Bàn trống / tổng số bàn</p>
+                </div></div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4"><div class="card-body">
+                    <h2 class="m-0">@So((object?)ViewBag.PhieuDangPhucVu)</h2><p class="m-0 opacity-50">Phiếu gọi món đang phục vụ</p>
+                </div></div>
+            </div>
+            <div class="col-xl-3 col-sm-6 col-12">
+                <div class="card mb-4"><div class="card-body">
+                    <h2 class="m-0">@So((object?)ViewBag.DatBanSapToi)</h2><p class="m-0 opacity-50">Phiếu đặt bàn từ hôm nay</p>
+                </div></div>
+            </div>
+        </div>
+
+        @if (ViewBag.DonChoXacNhan is int choXN && choXN > 0)
+        {
+            <div class="alert alert-warning d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-bell"></i> Có <strong>@choXN</strong> đơn mua trực tuyến đang chờ xác nhận.</span>
+                <a asp-controller="Admin_DonTrucTuyen" asp-action="DanhSach" class="btn btn-sm btn-warning">Xem ngay</a>
+            </div>
+        }
+    }
+
+    <!-- Lối tắt -->
+    <div class="row gx-4">
+        @{
+            var loiTat = laQuanLy
+                ? new (string Ctl, string Act, string Icon, string Ten, string MoTa)[]
+                {
+                    ("Admin_DoanhThu", "Index", "bi-graph-up-arrow", "Doanh thu", "Theo tháng, từng ngày trong tháng, so sánh tháng"),
+                    ("Admin_NhanVien", "Index", "bi-people", "Nhân viên", "Thêm, sửa, xóa nhân viên (" + So((object?)ViewBag.SoNhanVien) + " người)"),
+                    ("Admin_MonAn", "DanhSachMonAn", "bi-cup-hot", "Món ăn", "Thêm, sửa, xóa món (" + So((object?)ViewBag.SoMon) + " món)"),
+                    ("Admin_GiamGia", "HienThiMaGiamGia", "bi-tag", "Mã giảm giá", "Thêm, sửa, xóa mã khuyến mại (" + So((object?)ViewBag.SoMaGiamGia) + " mã còn hiệu lực)"),
+                    ("DanhGia", "ShowDanhGia", "bi-star", "Đánh giá", "Xem, trả lời, xóa đánh giá của khách hàng"),
+                }
+                : new (string Ctl, string Act, string Icon, string Ten, string MoTa)[]
+                {
+                    ("Admin_MonAn", "DanhSachMonAn", "bi-cup-hot", "Món ăn", "Xem thực đơn, giá món (" + So((object?)ViewBag.SoMon) + " món)"),
+                    ("QuanLyBan", "ShowBan", "bi-table", "Quản lý bàn", "Xem và đổi trạng thái bàn"),
+                    ("PhieuGoiMon", "DanhSachPhieuGoiMon", "bi-journal-text", "Phiếu gọi món", "Mở phiếu, gọi món, thanh toán"),
+                    ("Admin_DatBan", "DatBan", "bi-calendar-check", "Khách đặt bàn", "Yêu cầu đặt bàn sắp tới"),
+                    ("Admin_DonTrucTuyen", "DanhSach", "bi-globe2", "Người mua trực tuyến", "Xác nhận đơn, xác nhận giao"),
+                    ("NhaHang", "ShowHD", "bi-receipt", "Hóa đơn bán hàng", "Tra cứu, lọc, sửa hóa đơn"),
+                    ("Admin_NguyenLieu", "HienThiNguyenLieu", "bi-basket", "Nguyên liệu", "Danh sách và tồn kho"),
+                    ("Admin_HoaDon", "HienThiHoaDon", "bi-box-arrow-in-down", "Nhập kho", "Phiếu nhập kho nguyên liệu"),
+                    ("Admin_XuatKho", "HienThiXuatKho", "bi-box-arrow-up", "Xuất kho", "Phiếu xuất kho nguyên liệu"),
+                    ("Admin_Ca", "Index", "bi-safe", "Ca làm việc & két", "Mở ca, chi tiêu, rút tiền, đóng ca"),
+                    ("Admin_Quy", "Index", "bi-wallet2", "Quỹ", "Tiền két, doanh thu theo ngày, chi tiêu theo tháng"),
+                    ("Admin_GiamGia", "HienThiMaGiamGia", "bi-tag", "Mã giảm giá", "Xem mã giảm giá đang hiệu lực"),
+                };
+        }
+        @foreach (var m in loiTat)
+        {
+            <div class="col-xl-3 col-md-4 col-sm-6 col-12">
+                <a asp-controller="@m.Ctl" asp-action="@m.Act" class="text-decoration-none">
+                    <div class="card mb-4">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="icon-box md bg-primary rounded-5 me-3"><i class="bi @m.Icon text-white"></i></div>
+                            <div>
+                                <h6 class="m-0">@m.Ten</h6>
+                                <small class="text-muted">@m.MoTa</small>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+</div>

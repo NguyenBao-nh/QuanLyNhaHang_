@@ -1,0 +1,69 @@
+﻿@model IEnumerable<HoaDon>
+
+<div class="card shadow-lg mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Mã Hóa Đơn</th>
+                        <th>Mã Bàn</th>
+                        <th>Mã Khách Hàng</th>
+                        <th>Tên Khách Hàng</th>
+                        <th>Mã Nhân Viên</th>
+                        <th>Mã Giảm Giá</th>
+                        <th>Ngày Lập</th>
+                        <th>Tổng Tiền</th>
+                        <th>Hình Thức</th>
+                        <th>Loại / Trạng Thái</th>
+                        <th>Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Mahoadon.Trim()</td>
+                            <td>@item.Maban?.Trim()</td>
+                            <td>@item.Makh?.Trim()</td>
+                            <td>@item.TenHienThi</td>
+                            <td>@item.Manv?.Trim()</td>
+                            <td>@item.Magiamgia?.Trim()</td>
+                            <td>
+                                @if (item.Ngaylap.HasValue)
+                                {
+                                    @item.Ngaylap.Value.ToString("dd/MM/yyyy")
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Không có ngày</span>
+                                }
+                            </td>
+                            <td>@((item.Tongtien ?? 0).ToString("N0")) VNĐ</td>
+                            <td>@item.Hinhthuc</td>
+                            <td>
+                                @if (item.LaDonTrucTuyen)
+                                {
+                                    <a asp-controller="Admin_DonTrucTuyen" asp-action="ChiTiet" asp-route-ma="@item.Mahoadon.Trim()" class="text-decoration-none">
+                                        <span class="badge bg-dark">Trực tuyến</span>
+                                        <span class="badge @TrangThaiDon.MauBadge(item.Trangthai)">@(item.Trangthai ?? "-")</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-light text-dark border">Tại quán</span>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="ShowCTHD" asp-route-ma="@item.Mahoadon.Trim()" class="btn btn-sm btn-info">Xem Chi Tiết</a>
+                                <a asp-action="Edit" asp-route-id="@item.Mahoadon.Trim()" class="btn btn-sm btn-warning">Sửa</a>
+                                <a asp-action="InHoaDon" asp-route-ma="@item.Mahoadon.Trim()" asp-route-auto="1" target="_blank"
+                                   class="btn btn-sm btn-primary" title="In hóa đơn"><i class="bi bi-printer"></i> In</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

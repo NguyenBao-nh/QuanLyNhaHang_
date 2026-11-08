@@ -1,0 +1,175 @@
+﻿@model IEnumerable<Ban>
+@{
+    ViewData["Title"] = "Danh Sách Bàn";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    int loc = int.TryParse(Context.Request.Query["LocBanTrong"], out var l) ? l : 0;
+    var phieuMo = ViewBag.PhieuMo as Dictionary<string, List<string>> ?? new Dictionary<string, List<string>>();
+    var donTheoBan = ViewBag.DonTheoBan as Dictionary<string, List<HoaDon>> ?? new Dictionary<string, List<HoaDon>>();
+    var phieuDatTheoBan = ViewBag.PhieuDatTheoBan as Dictionary<string, PhieuDatBan> ?? new Dictionary<string, PhieuDatBan>();
+}
+
+<div class="container mt-4">
+    <h2 class="text-center mb-4" style="color: #f49030">Danh Sách Bàn</h2>
+
+    <form asp-action="ShowBan" asp-controller="QuanLyBan" method="get">
+        <div class="row align-items-center mb-3">
+            <div class="col-md-8">
+                <label for="LocBanTrong" class="form-label">Trạng thái</label>
+                <select id="LocBanTrong" name="LocBanTrong" class="form-select">
+                    <option value="0" selected="@(loc == 0)">Tất cả</option>
+                    <option value="1" selected="@(loc == 1)">Bàn trống</option>
+                    <option value="2" selected="@(loc == 2)">Bàn đầy</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-funnel"></i> Lọc</button>
+            </div>
+        </div>
+    </form>
+
+    @if (ViewBag.DongBo != null)
+    {
+        <div class="alert alert-warning" role="alert"><i class="bi bi-arrow-repeat"></i> @ViewBag.DongBo</div>
+    }
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success" role="alert">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger" role="alert">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="mb-3 d-flex justify-content-end align-items-center gap-2 flex-wrap">
+        <form asp-action="ThemBan" method="post" class="d-flex align-items-center gap-2"
+              onsubmit="return confirm('Thêm ' + this.soLuong.value + ' bàn mới?');">
+            <label for="soLuong" class="mb-0 text-nowrap">Thêm</label>
+            <input type="number" id="soLuong" name="soLuong" value="1" min="1" max="20" class="form-control" style="width:80px" />
+            <button type="submit" class="btn btn-primary text-nowrap"><i class="bi bi-plus-square"></i> Thêm bàn</button>
+        </form>
+        <a asp-action="XepBan" class="btn btn-success"><i class="bi bi-person-plus"></i> Xếp bàn cho khách</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered align-middle">
+            <thead class="table-dark text-center">
+                <tr>
+                    <th>Mã Bàn</th>
+                    <th>Trạng Thái</th>
+                    <th>Khách đang ngồi</th>
+                    <th>Tài khoản đặt món</th>
+                    <th>Món đang gọi</th>
+                    <th>Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        var ma = item.Maban.Trim();
+                        var trangThai = item.Trangthai?.Trim();
+                        var kh = item.MakhNavigation;
+                        var cacPhieu = phieuMo.GetValueOrDefault(ma) ?? new List<string>();
+                        var cacDon = donTheoBan.GetValueOrDefault(ma) ?? new List<HoaDon>();
+                        var phieuDat = phieuDatTheoBan.GetValueOrDefault(ma);
+                        <tr>
+                            <td class="text-center fw-bold">@ma</td>
+                            <td class="text-center">
+                                <span class="badge @(trangThai == "Trống" ? "bg-success" : "bg-danger")">@trangThai</span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(item.Tenkhach) || kh != null)
+                                {
+                                    <div class="fw-semibold">@(kh?.Hoten ?? item.Tenkhach)</div>
+                                    <div class="small text-muted">
+                                        @if (!string.IsNullOrWhiteSpace(item.Sdtkhach ?? kh?.Sodt))
+                                        {
+                                            <span><i class="bi bi-telephone"></i> @((item.Sdtkhach ?? kh?.Sodt)?.Trim())</span>
+                                        }
+                                        @if (item.Giovao.HasValue)
+                                        {
+                                            <span class="ms-2"><i class="bi bi-clock"></i> vào lúc @item.Giovao.Value.ToString("HH:mm dd/MM")</span>
+                                        }
+                                    </div>
+                                    @if (phieuDat != null)
+                                    {
+                                        <div class="small"><span class="badge bg-info text-dark"><i class="bi bi-calendar-check"></i> Đặt trước: @phieuDat.Maphieu · @phieuDat.Soluong người</span></div>
+                                    }
+                                }
+                                else if (trangThai == "Đầy")
+                                {
+                                    <span class="text-muted small">Chưa ghi thông tin khách</span>
+                                }
+                            </td>
+                            <td>
+                                @if (kh != null)
+                                {
+                                    <div><i class="bi bi-person-badge"></i> @(kh.MataikhoanNavigation?.Tendangnhap ?? kh.Mataikhoan?.Trim())</div>
+                                    <div class="small text-muted">Mã KH: @kh.Makh.Trim()</div>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(item.Tenkhach))
+                                {
+                                    <span class="text-muted small">Khách vãng lai (không có tài khoản)</span>
+                                }
+                            </td>
+                            <td>
+                                @foreach (var p in cacPhieu)
+                                {
+                                    <a asp-controller="PhieuGoiMon" asp-action="ChiTietPhieu" asp-route-ma="@p" asp-route-maBan="@ma"
+                                       class="badge bg-warning text-dark text-decoration-none me-1">Phiếu @p</a>
+                                }
+                                @foreach (var hd in cacDon)
+                                {
+                                    <a asp-controller="NhaHang" asp-action="ShowCTHD" asp-route-ma="@hd.Mahoadon.Trim()"
+                                       class="badge bg-info text-dark text-decoration-none me-1"
+                                       title="Khách tự đặt trên web lúc @hd.Ngaylap?.ToString("HH:mm")">Web @hd.Mahoadon.Trim() · @((hd.Tongtien ?? 0).ToString("N0"))đ</a>
+                                }
+                                @if (!cacPhieu.Any() && !cacDon.Any())
+                                {
+                                    <span class="text-muted small">-</span>
+                                }
+                            </td>
+                            <td class="text-center text-nowrap">
+                                @if (trangThai == "Trống")
+                                {
+                                    <a asp-action="XepBan" asp-route-maBan="@ma" class="btn btn-success btn-sm">Đặt Bàn</a>
+                                    <form asp-action="XoaBan" method="post" class="d-inline"
+                                          onsubmit="return confirm('Xóa bàn @(ma)? Chỉ xóa được bàn chưa từng có hóa đơn.');">
+                                        <input type="hidden" name="maBan" value="@ma" />
+                                        <input type="hidden" name="LocBanTrong" value="@loc" />
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" title="Xóa bàn"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    // "Đầy" (hoặc trạng thái lạ chưa chuẩn hóa) -> luôn có nút Phục vụ xong
+                                    bool conPhieu = cacPhieu.Any();
+                                    <form asp-action="PhucVuXong" method="post" class="d-inline"
+                                          onsubmit="return confirm('Bàn @(ma) đã phục vụ xong? Bàn sẽ trở về trống và khách được xóa khỏi bàn / danh sách đặt bàn.');">
+                                        <input type="hidden" name="maBan" value="@ma" />
+                                        <input type="hidden" name="LocBanTrong" value="@loc" />
+                                        <button type="submit" class="btn btn-primary btn-sm"
+                                                title="@(conPhieu ? "Bàn còn phiếu gọi món chưa thanh toán" : "Khách đã dùng xong, trả bàn về trống")">
+                                            <i class="bi bi-check2-circle"></i> Phục vụ xong
+                                        </button>
+                                    </form>
+                                    @if (conPhieu)
+                                    {
+                                        <div class="small text-danger mt-1">Còn phiếu chưa thanh toán</div>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">Không có bàn nào được tìm thấy.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

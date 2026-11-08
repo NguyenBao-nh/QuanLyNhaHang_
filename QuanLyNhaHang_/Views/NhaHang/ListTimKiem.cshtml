@@ -1,0 +1,19 @@
+﻿@model IEnumerable<HoaDon>
+@{
+    ViewData["Title"] = "Kết Quả Tìm Kiếm Hóa Đơn";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+}
+
+<h2 class="text-center my-4" style="color: #fa8f23">KẾT QUẢ TÌM KIẾM HOÁ ĐƠN</h2>
+
+<form asp-action="ListTimKiem" asp-controller="NhaHang" method="get" class="container mb-3">
+    <div class="input-group">
+        <input type="text" name="txt_Search" class="form-control" value="@Context.Request.Query["txt_Search"]" placeholder="Từ khóa..." />
+        <button type="submit" class="btn btn-outline-primary">Tìm kiếm</button>
+        <a asp-action="ShowHD" class="btn btn-secondary">Quay lại danh sách</a>
+    </div>
+</form>
+
+<p class="text-muted">Tìm thấy: <strong>@ViewBag.SL</strong> hóa đơn</p>
+
+<partial name="_BangHoaDon" model="Model" />

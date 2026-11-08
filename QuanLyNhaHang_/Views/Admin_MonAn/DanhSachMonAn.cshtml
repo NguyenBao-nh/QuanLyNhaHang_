@@ -1,0 +1,342 @@
+﻿@model IEnumerable<QuanLyNhaHang_.Models.MonAn>
+@{
+    ViewBag.Title = "DanhSachMonAn";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    string maMoi = ViewBag.MaMoi as string ?? "";
+    var dsLoaiMon = ViewBag.DsLoaiMon as List<string> ?? new List<string>();
+    bool laQuanLy = ViewBag.LaQuanLy is bool b && b;   // quản lý: thêm / sửa / xóa; nhân viên: chỉ xem
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["ErrorMessage"]</div>
+}
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@if (laQuanLy)
+{
+<form id="formMonAn" method="post" enctype="multipart/form-data" action="@Url.Action("XuLyForm", "Admin_MonAn")" autocomplete="off">
+    @Html.AntiForgeryToken()
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Cột đầu tiên -->
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="MaMonAn" class="form-label">Mã món ăn: <small class="text-muted" id="CheDo">(tự động khi thêm mới)</small></label>
+                    <div class="input-group">
+                        <input type="text" class="form-control bg-light" id="MaMonAn" name="MaMonAn" value="@maMoi" data-ma-moi="@maMoi" readonly>
+                        <button type="button" class="btn btn-outline-secondary" id="btnLamMoi" title="Xóa form để thêm món mới">Làm mới</button>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="TenMon" class="form-label">Tên món ăn:</label>
+                    <input type="text" class="form-control" id="TenMon" name="TenMon" maxlength="20" required>
+                </div>
+                <div class="mb-3">
+                    <label for="Gia" class="form-label">Giá:</label>
+                    <input type="number" class="form-control" id="Gia" name="Gia" step="any" required>
+                </div>
+            </div>
+
+            <!-- Cột thứ hai -->
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="LoaiMon" class="form-label">Loại món ăn:</label>
+                    <select class="form-select" id="LoaiMon" name="LoaiMon" required>
+                        <option value="">-- Chọn loại món --</option>
+                        @foreach (var loai in dsLoaiMon)
+                        {
+                            <option value="@loai">@loai</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="AnhMon" class="form-label">Ảnh:</label>
+                    <input type="file" class="form-control" id="AnhMon" name="AnhMon" accept="image/*">
+                    <input type="hidden" id="TenAnh" name="TenAnh">
+                    <!-- Thêm object-fit: cover và kích thước cố định để khung ảnh không bị co giật -->
+                    <img id="imgPreview" src="" alt="Ảnh món ăn" class="img-thumbnail mt-2" style="width: 100px; height: 100px; object-fit: cover;">
+                </div>
+            </div>
+
+            <!-- Cột thứ ba -->
+            <div class="col-md-4">
+                <div class="mb-3">
+                    <label for="MoTa" class="form-label">Mô tả món ăn:</label>
+                    <textarea class="form-control" id="MoTa" name="MoTa" rows="8"></textarea>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary" name="action" value="Them">Thêm Món Ăn</button>
+                    <button type="submit" class="btn btn-danger" name="action" value="Xoa">Xóa Món Ăn</button>
+                    <button type="submit" class="btn btn-warning" name="action" value="Sua">Sửa Món Ăn</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+}
+else
+{
+    <div class="alert alert-info mt-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <span><i class="bi bi-eye"></i> Danh sách món ăn để tra cứu giá và gọi món cho khách. Thêm / sửa / xóa món do tài khoản quản lý thực hiện.</span>
+        <a asp-controller="PhieuGoiMon" asp-action="DanhSachPhieuGoiMon" class="btn btn-sm btn-primary"><i class="bi bi-journal-text"></i> Gọi món cho khách</a>
+    </div>
+}
+
+<!-- Tìm kiếm theo mã hoặc tên, có gợi ý khi gõ -->
+<form method="get" asp-action="DanhSachMonAn" asp-controller="Admin_MonAn" autocomplete="off">
+    <div class="input-group mt-3 goi-y-wrap">
+        <input type="text" class="form-control" id="TimMon" name="TenMonCanTim" placeholder="Nhập mã món (VD: MA0005) hoặc tên món (VD: dau hu) để tìm kiếm" value="@Context.Request.Query["TenMonCanTim"]">
+        <button type="submit" class="btn btn-primary">Tìm kiếm</button>
+        <a asp-action="DanhSachMonAn" class="btn btn-outline-secondary">Tất cả</a>
+        <div class="goi-y-list" id="GoiYMon"></div>
+    </div>
+</form>
+
+<table class="table mt-4">
+    <thead>
+        <tr>
+            <th>Mã món ăn</th>
+            <th>Tên món</th>
+            <th>Loại món</th>
+            <th>Giá</th>
+            <th>Ảnh</th>
+            <th>Mô tả</th>
+            @if (laQuanLy)
+            {
+                <th>Hành động</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null)
+        {
+            foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Mamonan</td>
+                    <td>@item.Tenmon</td>
+                    <td>@item.Loaimon</td>
+                    <td>@item.Gia?.ToString("N0")</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(item.AnhMon))
+                        {
+                            <img src="~/Images/MonAn/@item.AnhMon" alt="Ảnh món ăn" class="img-thumbnail" style="width: 80px; height: 80px; object-fit: cover;" onerror="this.onerror=null; this.src='/Images/logo.png';" />
+                        }
+                        else
+                        {
+                            <span class="text-muted">Không có ảnh</span>
+                        }
+                    </td>
+                    <td class="description-text">@item.MoTa</td>
+                    @if (laQuanLy)
+                    {
+                        <td>
+                            <a href="#" class="edit-link btn btn-sm btn-secondary"
+                               data-id="@item.Mamonan"
+                               data-tenmon="@item.Tenmon"
+                               data-loaimon="@item.Loaimon"
+                               data-gia="@item.Gia"
+                               data-anhmon="@item.AnhMon"
+                               data-mota="@item.MoTa">
+                                Edit
+                            </a>
+                        </td>
+                    }
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+<style>
+    .goi-y-wrap { position: relative; }
+    .goi-y-list {
+        position: absolute; top: 100%; left: 0; right: 0; z-index: 1050;
+        background: #fff; border: 1px solid #dee2e6; border-top: 0; border-radius: 0 0 6px 6px;
+        box-shadow: 0 6px 16px rgba(0,0,0,.12); max-height: 340px; overflow-y: auto; display: none;
+    }
+    .goi-y-item { display: flex; align-items: center; gap: 10px; padding: 6px 10px; cursor: pointer; }
+    .goi-y-item:hover, .goi-y-item.active { background: #fff3e6; }
+    .goi-y-item img { width: 36px; height: 36px; object-fit: cover; border-radius: 4px; }
+    .goi-y-item .ma { font-size: 12px; color: #888; }
+    .goi-y-item b { color: #f08a24; }
+    .description-text {
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Lấy chính xác form nhập liệu thông qua id="formMonAn"
+        const form = document.getElementById('formMonAn');
+        const editLinks = document.querySelectorAll('.edit-link');
+        const anhMonInput = document.getElementById('AnhMon');
+        const tenAnhInput = document.getElementById('TenAnh');
+        const imgPreview = document.getElementById('imgPreview');
+
+        // Xử lý sự kiện chọn file ảnh để preview
+        anhMonInput?.addEventListener('change', function () {
+            const file = this.files[0];
+            if (file) {
+                tenAnhInput.value = file.name;
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    imgPreview.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Xử lý sự kiện click nút Edit trên bảng
+        editLinks.forEach(link => {
+            link.addEventListener('click', function (event) {
+                event.preventDefault();
+                document.getElementById('MaMonAn').value = (this.dataset.id || '').trim();
+                document.getElementById('CheDo').textContent = '(đang sửa món này)';
+                document.getElementById('TenMon').value = this.dataset.tenmon;
+                chonLoaiMon((this.dataset.loaimon || '').trim());
+                document.getElementById('Gia').value = this.dataset.gia;
+                document.getElementById('MoTa').value = this.dataset.mota || '';
+
+                const anhMon = this.dataset.anhmon;
+                tenAnhInput.value = anhMon || '';
+                anhMonInput.value = ''; // Reset input file
+
+                if (anhMon) {
+                    imgPreview.src = `/Images/MonAn/${anhMon}`;
+                } else {
+                    imgPreview.src = '';
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        // Chọn loại món trong select; nếu món cũ có loại lạ thì thêm option tạm
+        function chonLoaiMon(loai) {
+            const sel = document.getElementById('LoaiMon');
+            if (loai && ![...sel.options].some(o => o.value === loai)) {
+                sel.add(new Option(loai, loai));
+            }
+            sel.value = loai;
+        }
+
+        // Nút "Làm mới": quay về chế độ thêm món, lấy mã kế tiếp
+        document.getElementById('btnLamMoi')?.addEventListener('click', function () {
+            form.reset();
+            tenAnhInput.value = '';
+            imgPreview.src = '';
+            document.getElementById('CheDo').textContent = '(tự động khi thêm mới)';
+            const oMa = document.getElementById('MaMonAn');
+            fetch('@Url.Action("MaMoi", "Admin_MonAn")', { cache: 'no-store' })
+                .then(r => r.json())
+                .then(ma => { oMa.value = ma; oMa.dataset.maMoi = ma; })
+                .catch(() => { oMa.value = oMa.dataset.maMoi || ''; });
+        });
+
+        // Xử lý sự kiện submit form kèm SweetAlert2
+        form?.addEventListener('submit', function (event) {
+            event.preventDefault();
+            const action = event.submitter?.value;
+            if (!action) return;
+
+            let message = '';
+            const maHienTai = document.getElementById('MaMonAn').value.trim();
+            const maMoi = (document.getElementById('MaMonAn').dataset.maMoi || '').trim();
+            if ((action === 'Sua' || action === 'Xoa') && maHienTai === maMoi) {
+                Swal.fire('Chưa chọn món', 'Hãy bấm "Edit" ở món cần sửa / xóa trong bảng bên dưới.', 'info');
+                return;
+            }
+
+            switch (action) {
+                case 'Them': message = 'Thêm món mới (mã sẽ được cấp tự động)?'; break;
+                case 'Xoa': message = 'Bạn có chắc chắn muốn xóa món ăn này?'; break;
+                case 'Sua': message = 'Bạn có chắc chắn muốn sửa món ăn này?'; break;
+            }
+
+            Swal.fire({
+                title: 'Xác nhận',
+                text: message,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Đồng ý',
+                cancelButtonText: 'Hủy bỏ'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Dùng lại 1 ô ẩn duy nhất (tránh gửi "Them,Sua" khi bấm nhiều lần)
+                    let actionInput = form.querySelector('input[type=hidden][name=action]');
+                    if (!actionInput) {
+                        actionInput = document.createElement('input');
+                        actionInput.type = 'hidden';
+                        actionInput.name = 'action';
+                        form.appendChild(actionInput);
+                    }
+                    actionInput.value = action;
+                    form.submit();
+                }
+            });
+        });
+    });
+
+    // ===== Gợi ý tìm kiếm món ăn (mã hoặc tên) =====
+    (function () {
+        const o = document.getElementById('TimMon');
+        const box = document.getElementById('GoiYMon');
+        if (!o || !box) return;
+        let timer = null, viTri = -1, ds = [];
+
+        function an() { box.style.display = 'none'; viTri = -1; }
+        function toDam(text, q) {
+            const e = document.createElement('div'); e.textContent = text || ''; return e.innerHTML;
+        }
+        function ve() {
+            box.innerHTML = '';
+            if (!ds.length) {
+                box.innerHTML = '<div class="p-2 text-muted small">Không có món phù hợp</div>';
+                box.style.display = 'block';
+                return;
+            }
+            ds.forEach((m, i) => {
+                const d = document.createElement('div');
+                d.className = 'goi-y-item' + (i === viTri ? ' active' : '');
+                d.innerHTML = `<img src="/Images/MonAn/${encodeURIComponent(m.anh || '')}" onerror="this.src='/Images/logo.png'">
+                               <div class="flex-grow-1"><div>${toDam(m.ten)}</div><div class="ma">${toDam(m.ma)} · ${toDam(m.loai)}</div></div>
+                               <b>${Number(m.gia || 0).toLocaleString('vi-VN')} đ</b>`;
+                d.addEventListener('mousedown', function (e) { e.preventDefault(); chon(m); });
+                box.appendChild(d);
+            });
+            box.style.display = 'block';
+        }
+        function chon(m) {
+            o.value = m.ma;
+            an();
+            o.form.submit();
+        }
+        o.addEventListener('input', function () {
+            clearTimeout(timer);
+            const q = o.value.trim();
+            if (!q) { an(); return; }
+            timer = setTimeout(function () {
+                fetch('/MonAn/GoiY?q=' + encodeURIComponent(q), { cache: 'no-store' })
+                    .then(r => r.json()).then(kq => { ds = kq; viTri = -1; ve(); })
+                    .catch(an);
+            }, 200);
+        });
+        o.addEventListener('keydown', function (e) {
+            if (box.style.display !== 'block' || !ds.length) return;
+            if (e.key === 'ArrowDown') { viTri = (viTri + 1) % ds.length; ve(); e.preventDefault(); }
+            else if (e.key === 'ArrowUp') { viTri = (viTri - 1 + ds.length) % ds.length; ve(); e.preventDefault(); }
+            else if (e.key === 'Enter' && viTri >= 0) { e.preventDefault(); chon(ds[viTri]); }
+            else if (e.key === 'Escape') an();
+        });
+        o.addEventListener('blur', function () { setTimeout(an, 150); });
+    })();
+</script>

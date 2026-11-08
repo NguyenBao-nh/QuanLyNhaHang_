@@ -1,0 +1,298 @@
+﻿@model ThongKeDoanhThu
+@{
+    ViewData["Title"] = "Doanh thu";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    string Tien(long v) => v.ToString("N0") + " đ";
+    int namNay = DateTime.Today.Year;
+}
+@{
+    var th = Model.ThangDangXem;
+    long maxCot = Math.Max(1, Model.TheoThang.Max(x => Math.Max(x.DoanhThu, x.TongChi)));
+    long maxNgay = Math.Max(1, Model.TheoNgayTrongThang.Select(x => x.DoanhThu).DefaultIfEmpty(0).Max());
+    var ss = Model.SoSanh;
+}
+
+<div class="container-fluid mt-4">
+    <h2 style="color:#fa8f23"><i class="bi bi-graph-up-arrow"></i> Doanh thu</h2>
+
+    @if (TempData["LoiDoanhThu"] != null)
+    {
+        <div class="alert alert-danger">@TempData["LoiDoanhThu"]</div>
+    }
+
+    <ul class="nav nav-pills mb-3">
+        <li class="nav-item"><a class="nav-link active" href="#theo-thang">Theo tháng</a></li>
+        <li class="nav-item"><a class="nav-link" href="#theo-ngay-trong-thang">Từng ngày trong tháng</a></li>
+        <li class="nav-item"><a class="nav-link" href="#so-sanh">So sánh tháng</a></li>
+    </ul>
+
+    @* ================= THEO THÁNG (chỉ quản lý) ================= *@
+    <div id="theo-thang" class="d-flex flex-wrap justify-content-between align-items-end mb-2 gap-2">
+        <h5 class="m-0">Doanh thu theo tháng</h5>
+        <form asp-action="Index" method="get" class="d-flex gap-2 align-items-end">
+            <select name="thang" class="form-select">
+                @for (int m = 1; m <= 12; m++)
+                {
+                    if (m == Model.Thang) { <option value="@m" selected>Tháng @m</option> }
+                    else { <option value="@m">Tháng @m</option> }
+                }
+            </select>
+            <select name="nam" class="form-select">
+                @for (int y = namNay; y >= namNay - 5; y--)
+                {
+                    if (y == Model.Nam) { <option value="@y" selected>@y</option> }
+                    else { <option value="@y">@y</option> }
+                }
+            </select>
+            <button type="submit" class="btn btn-primary text-nowrap">Xem tháng</button>
+        </form>
+    </div>
+
+    <div class="row gx-3">
+        <div class="col-xl-3 col-md-6">
+            <div class="card mb-3"><div class="card-body">
+                <div class="opacity-75"><i class="bi bi-graph-up"></i> Doanh thu tháng @Model.Thang/@Model.Nam</div>
+                <h3 class="m-0 text-success">@Tien(th.DoanhThu)</h3>
+                <small class="text-muted">@th.SoHoaDon HĐ · TM @th.DoanhThuTienMat.ToString("N0") · CK @th.DoanhThuChuyenKhoan.ToString("N0")</small>
+            </div></div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card mb-3"><div class="card-body">
+                <div class="opacity-75"><i class="bi bi-cart-dash"></i> Tiền chi tiêu tháng @Model.Thang</div>
+                <h3 class="m-0 text-danger">@Tien(th.TongChi)</h3>
+                <small class="text-muted">Nhập kho @th.NhapKho.ToString("N0") · chi vặt @th.ChiVat.ToString("N0")</small>
+            </div></div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card mb-3"><div class="card-body">
+                <div class="opacity-75"><i class="bi bi-cash-coin"></i> Thu - chi tháng @Model.Thang</div>
+                <h3 class="m-0 @(th.ConLai < 0 ? "text-danger" : "text-primary")">@Tien(th.ConLai)</h3>
+                <small class="text-muted">Gồm thu bồi thường @th.ThuKhac.ToString("N0") đ · TB @th.TrungBinhHoaDon.ToString("N0") đ / HĐ</small>
+            </div></div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card mb-3"><div class="card-body">
+                <div class="opacity-75"><i class="bi bi-calendar3"></i> Doanh thu cả năm @Model.Nam</div>
+                <h3 class="m-0">@Tien(Model.DoanhThuNam)</h3>
+                <small class="text-muted">Xuất kho cả năm @Model.XuatKhoNam.ToString("N0") đ</small>
+            </div></div>
+        </div>
+    </div>
+
+    @* Từng ngày trong tháng *@
+    <div id="theo-ngay-trong-thang" class="card mb-4">
+        <div class="card-header"><strong>Doanh thu từng ngày - tháng @Model.Thang/@Model.Nam</strong></div>
+        <div class="card-body table-responsive" style="max-height:420px;overflow:auto">
+            @if (Model.TheoNgayTrongThang.Count == 0)
+            {
+                <p class="text-muted m-0">Tháng này chưa tới.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover align-middle m-0">
+                    <thead class="table-dark">
+                        <tr><th>Ngày</th><th class="text-end">Số HĐ</th><th class="text-end">Tiền mặt</th><th class="text-end">Chuyển khoản</th>
+                            <th class="text-end">Doanh thu</th><th class="text-end">Tổng chi</th><th class="text-end">Thu - chi</th><th style="width:18%"></th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var nd in Model.TheoNgayTrongThang)
+                        {
+                            int p = (int)(nd.DoanhThu * 100 / maxNgay);
+                            <tr class="@(nd.Ngay == DateTime.Today ? "table-warning" : "")">
+                                <td>@nd.Ngay.ToString("dd/MM (ddd)")</td>
+                                <td class="text-end">@nd.SoHoaDon</td>
+                                <td class="text-end">@nd.DoanhThuTienMat.ToString("N0")</td>
+                                <td class="text-end">@nd.DoanhThuChuyenKhoan.ToString("N0")</td>
+                                <td class="text-end fw-semibold text-success">@nd.DoanhThu.ToString("N0")</td>
+                                <td class="text-end text-danger">@nd.TongChi.ToString("N0")</td>
+                                <td class="text-end fw-bold @(nd.ConLai < 0 ? "text-danger" : "")">@nd.ConLai.ToString("N0")</td>
+                                <td><div class="bg-success rounded" style="height:6px;width:@(p)%"></div></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+    @* 12 tháng trong năm *@
+    <div class="card mb-4">
+        <div class="card-header"><strong>Doanh thu & chi tiêu theo tháng - năm @Model.Nam</strong></div>
+        <div class="card-body table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th rowspan="2" class="align-middle">Tháng</th>
+                        <th colspan="4" class="text-center">Doanh thu</th>
+                        <th colspan="3" class="text-center">Tiền chi tiêu</th>
+                        <th rowspan="2" class="text-end align-middle">Hàng xuất kho</th>
+                        <th rowspan="2" class="text-end align-middle">Thu - chi</th>
+                        <th rowspan="2" class="align-middle" style="width:14%"></th>
+                    </tr>
+                    <tr>
+                        <th class="text-end">Tiền mặt</th>
+                        <th class="text-end">Chuyển khoản</th>
+                        <th class="text-end">Tổng</th>
+                        <th class="text-end">So tháng trước</th>
+                        <th class="text-end">Nhập kho</th>
+                        <th class="text-end">Chi vặt</th>
+                        <th class="text-end">Tổng chi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var dg in Model.TheoThang)
+                    {
+                        int pThu = (int)(dg.DoanhThu * 100 / maxCot);
+                        int pChi = (int)(dg.TongChi * 100 / maxCot);
+                        var truoc = dg.Thang > 1 ? Model.TheoThang[dg.Thang - 2] : null;
+                        string bienDong = truoc == null ? "" : SoSanhThangQuy.PhanTram(dg.DoanhThu, truoc.DoanhThu);
+                        <tr class="@(dg.Thang == Model.Thang ? "table-warning" : "")">
+                            <td><a asp-action="Index" asp-route-nam="@Model.Nam" asp-route-thang="@dg.Thang">Tháng @dg.Thang</a></td>
+                            <td class="text-end">@dg.DoanhThuTienMat.ToString("N0")</td>
+                            <td class="text-end">@dg.DoanhThuChuyenKhoan.ToString("N0")</td>
+                            <td class="text-end fw-semibold text-success">@dg.DoanhThu.ToString("N0")</td>
+                            <td class="text-end small @(bienDong.StartsWith("-") ? "text-danger" : "text-success")">@bienDong</td>
+                            <td class="text-end">@dg.NhapKho.ToString("N0")</td>
+                            <td class="text-end">@dg.ChiVat.ToString("N0")</td>
+                            <td class="text-end fw-semibold text-danger">@dg.TongChi.ToString("N0")</td>
+                            <td class="text-end text-muted">@dg.XuatKho.ToString("N0")</td>
+                            <td class="text-end fw-bold @(dg.ConLai < 0 ? "text-danger" : "")">@dg.ConLai.ToString("N0")</td>
+                            <td>
+                                <div class="bg-success rounded mb-1" style="height:6px;width:@(pThu)%" title="Doanh thu"></div>
+                                <div class="bg-danger rounded" style="height:6px;width:@(pChi)%" title="Chi tiêu"></div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                    <tr>
+                        <td>Cả năm</td>
+                        <td class="text-end">@Model.TheoThang.Sum(x => x.DoanhThuTienMat).ToString("N0")</td>
+                        <td class="text-end">@Model.TheoThang.Sum(x => x.DoanhThuChuyenKhoan).ToString("N0")</td>
+                        <td class="text-end">@Model.DoanhThuNam.ToString("N0")</td>
+                        <td></td>
+                        <td class="text-end">@Model.NhapKhoNam.ToString("N0")</td>
+                        <td class="text-end">@Model.ChiVatNam.ToString("N0")</td>
+                        <td class="text-end">@((Model.NhapKhoNam + Model.ChiVatNam).ToString("N0"))</td>
+                        <td class="text-end">@Model.XuatKhoNam.ToString("N0")</td>
+                        <td class="text-end">@((Model.DoanhThuNam + Model.ThuKhacNam - Model.NhapKhoNam - Model.ChiVatNam).ToString("N0"))</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+            <p class="small text-muted mb-0">
+                Doanh thu gồm hóa đơn tại quán và đơn trực tuyến đã xác nhận nhận tiền.
+                Thu - chi = doanh thu + thu bồi thường ghi riêng (không gắn hóa đơn) - tiền chi tiêu.
+                Tiền chi tiêu = tiền hàng nhập kho (trả tiền mặt hay chuyển khoản đều tính) + chi tiêu vặt ghi trong các ca.
+                Tiền rút khỏi két không phải chi tiêu nên không tính.
+            </p>
+        </div>
+    </div>
+
+    @* ================= SO SÁNH 2 THÁNG (chỉ quản lý) ================= *@
+    <div id="so-sanh" class="card mb-4">
+        <div class="card-header"><strong>So sánh 2 tháng</strong></div>
+        <div class="card-body">
+            <form asp-action="Index" method="get" class="row g-2 align-items-end mb-3">
+                <input type="hidden" name="nam" value="@Model.Nam" />
+                <input type="hidden" name="thang" value="@Model.Thang" />
+                <div class="col-auto">
+                    <label class="form-label">Tháng A</label>
+                    <div class="d-flex gap-1">
+                        <select name="thangA" class="form-select">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                if (m == ss.ThangA) { <option value="@m" selected>Tháng @m</option> }
+                                else { <option value="@m">Tháng @m</option> }
+                            }
+                        </select>
+                        <select name="namA" class="form-select">
+                            @for (int y = namNay; y >= namNay - 5; y--)
+                            {
+                                if (y == ss.NamA) { <option value="@y" selected>@y</option> }
+                                else { <option value="@y">@y</option> }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-auto pb-2 fw-bold">so với</div>
+                <div class="col-auto">
+                    <label class="form-label">Tháng B</label>
+                    <div class="d-flex gap-1">
+                        <select name="thangB" class="form-select">
+                            @for (int m = 1; m <= 12; m++)
+                            {
+                                if (m == ss.ThangB) { <option value="@m" selected>Tháng @m</option> }
+                                else { <option value="@m">Tháng @m</option> }
+                            }
+                        </select>
+                        <select name="namB" class="form-select">
+                            @for (int y = namNay; y >= namNay - 5; y--)
+                            {
+                                if (y == ss.NamB) { <option value="@y" selected>@y</option> }
+                                else { <option value="@y">@y</option> }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="col-auto"><button type="submit" class="btn btn-primary">So sánh</button></div>
+            </form>
+
+            @{
+                var hang = new (string Ten, long A, long B, bool CaoLaTot)[]
+                {
+                    ("Doanh thu", ss.A.DoanhThu, ss.B.DoanhThu, true),
+                    ("  - Tiền mặt", ss.A.DoanhThuTienMat, ss.B.DoanhThuTienMat, true),
+                    ("  - Chuyển khoản", ss.A.DoanhThuChuyenKhoan, ss.B.DoanhThuChuyenKhoan, true),
+                    ("Số hóa đơn", ss.A.SoHoaDon, ss.B.SoHoaDon, true),
+                    ("Trung bình / hóa đơn", ss.A.TrungBinhHoaDon, ss.B.TrungBinhHoaDon, true),
+                    ("Thu bồi thường (ngoài hóa đơn)", ss.A.ThuKhac, ss.B.ThuKhac, true),
+                    ("Tiền chi tiêu", ss.A.TongChi, ss.B.TongChi, false),
+                    ("Hàng xuất kho", ss.A.XuatKho, ss.B.XuatKho, false),
+                    ("Thu - chi", ss.A.ConLai, ss.B.ConLai, true),
+                };
+                long maxSs = Math.Max(1, Math.Max(Math.Abs(ss.A.DoanhThu), Math.Abs(ss.B.DoanhThu)));
+            }
+            <div class="table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Chỉ tiêu</th>
+                            <th class="text-end">Tháng @ss.ThangA/@ss.NamA (A)</th>
+                            <th class="text-end">Tháng @ss.ThangB/@ss.NamB (B)</th>
+                            <th class="text-end">Chênh lệch A - B</th>
+                            <th class="text-end">%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in hang)
+                        {
+                            long cl = r.A - r.B;
+                            string mau = cl == 0 ? "" : ((cl > 0) == r.CaoLaTot ? "text-success" : "text-danger");
+                            <tr class="@(r.Ten.StartsWith(" ") ? "small text-muted" : "")">
+                                <td>@r.Ten.Trim()</td>
+                                <td class="text-end fw-semibold">@r.A.ToString("N0")</td>
+                                <td class="text-end">@r.B.ToString("N0")</td>
+                                <td class="text-end @mau">@((cl > 0 ? "+" : "") + cl.ToString("N0"))</td>
+                                <td class="text-end @mau">@SoSanhThangQuy.PhanTram(r.A, r.B)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-2">
+                <div class="d-flex align-items-center mb-1">
+                    <span style="width:110px" class="small">Tháng @ss.ThangA/@ss.NamA</span>
+                    <div class="flex-grow-1"><div class="bg-success rounded" style="height:14px;width:@((int)(Math.Max(0, ss.A.DoanhThu) * 100 / maxSs))%"></div></div>
+                    <span class="ms-2 small fw-semibold" style="width:120px;text-align:right">@Tien(ss.A.DoanhThu)</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span style="width:110px" class="small">Tháng @ss.ThangB/@ss.NamB</span>
+                    <div class="flex-grow-1"><div class="bg-secondary rounded" style="height:14px;width:@((int)(Math.Max(0, ss.B.DoanhThu) * 100 / maxSs))%"></div></div>
+                    <span class="ms-2 small fw-semibold" style="width:120px;text-align:right">@Tien(ss.B.DoanhThu)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,89 @@
+﻿@model NhanVienForm
+@{
+    ViewData["Title"] = Model.LaThemMoi ? "Thêm nhân viên" : "Sửa nhân viên";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    var dsQuyen = ViewBag.DsQuyen as List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> ?? new();
+}
+
+<div class="container-fluid mt-4" style="max-width:900px">
+    <h2 style="color:#fa8f23">
+        <i class="bi @(Model.LaThemMoi ? "bi-person-plus" : "bi-pencil-square")"></i>
+        @(Model.LaThemMoi ? "Thêm nhân viên" : "Sửa nhân viên " + Model.Manv)
+    </h2>
+
+    <form asp-action="Luu" method="post" class="card">
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+            <input type="hidden" asp-for="Manv" />
+            <input type="hidden" asp-for="Mataikhoan" />
+
+            <h6 class="text-muted">Thông tin nhân viên</h6>
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label asp-for="Hoten" class="form-label"></label> <span class="text-danger">*</span>
+                    <input asp-for="Hoten" class="form-control" maxlength="20" />
+                    <span asp-validation-for="Hoten" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Chucvu" class="form-label"></label>
+                    <input asp-for="Chucvu" class="form-control" maxlength="20" list="dsChucVu" />
+                    <datalist id="dsChucVu">
+                        <option value="Quản lý"></option>
+                        <option value="Thu ngân"></option>
+                        <option value="Phục vụ"></option>
+                        <option value="Đầu bếp"></option>
+                        <option value="Nhân viên kho"></option>
+                    </datalist>
+                    <span asp-validation-for="Chucvu" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Sodt" class="form-label"></label>
+                    <input asp-for="Sodt" class="form-control" maxlength="11" />
+                    <span asp-validation-for="Sodt" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Luong" class="form-label"></label> <small class="text-muted">(đ/tháng)</small>
+                    <input asp-for="Luong" type="number" min="0" step="100000" class="form-control" />
+                    <span asp-validation-for="Luong" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Sogiolam" class="form-label"></label>
+                    <input asp-for="Sogiolam" type="number" min="0" class="form-control" />
+                    <span asp-validation-for="Sogiolam" class="text-danger small"></span>
+                </div>
+            </div>
+
+            <h6 class="text-muted">Tài khoản đăng nhập</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="Tendangnhap" class="form-label"></label> <span class="text-danger">*</span>
+                    <input asp-for="Tendangnhap" class="form-control" maxlength="20" autocomplete="off" />
+                    <span asp-validation-for="Tendangnhap" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Matkhau" class="form-label"></label>
+                    @if (Model.LaThemMoi) { <span class="text-danger">*</span> }
+                    else { <small class="text-muted">(để trống = giữ mật khẩu cũ)</small> }
+                    <input asp-for="Matkhau" type="password" class="form-control" maxlength="20" autocomplete="new-password" value="" />
+                    <span asp-validation-for="Matkhau" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" type="email" class="form-control" maxlength="40" />
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Maquyen" class="form-label"></label> <span class="text-danger">*</span>
+                    <select asp-for="Maquyen" asp-items="dsQuyen" class="form-select">
+                        <option value="">-- Chọn quyền --</option>
+                    </select>
+                    <span asp-validation-for="Maquyen" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer d-flex gap-2 justify-content-end">
+            <a asp-action="Index" class="btn btn-outline-secondary">Quay lại</a>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Lưu</button>
+        </div>
+    </form>
+</div>

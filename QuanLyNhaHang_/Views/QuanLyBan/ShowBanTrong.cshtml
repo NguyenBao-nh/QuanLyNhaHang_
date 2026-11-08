@@ -1,0 +1,52 @@
+﻿@model IEnumerable<Ban>
+@{
+    ViewData["Title"] = "Bàn Trống";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+}
+
+<div class="container mt-4">
+    <h2 class="text-center mb-4" style="color: #f49030">Danh Sách Bàn Trống</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success" role="alert">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger" role="alert">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-hover table-bordered text-center">
+            <thead class="table-dark">
+                <tr>
+                    <th>Mã Bàn</th>
+                    <th>Trạng Thái</th>
+                    <th>Hành Động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>@item.Maban.Trim()</td>
+                            <td>@item.Trangthai?.Trim()</td>
+                            <td>
+                                <a asp-action="XepBan" asp-route-maBan="@item.Maban.Trim()"
+                                   class="btn btn-success btn-sm">Đặt Bàn</a>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">Hiện không còn bàn trống.</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

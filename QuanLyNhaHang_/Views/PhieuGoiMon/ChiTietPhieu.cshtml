@@ -1,0 +1,317 @@
+﻿@model List<ChiTietPhieuGoiMonViewModel>
+@{
+    ViewData["Title"] = "Chi Tiết Phiếu Gọi Món";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    var banInfo = ViewBag.BanInfo as Ban;
+    var phieuInfo = ViewBag.Phieu as PhieuGoiMon;
+    // Khách của phiếu (lưu trên phiếu), phiếu cũ thì lấy khách đang ngồi ở bàn
+    var khBan = phieuInfo?.MakhNavigation ?? banInfo?.MakhNavigation;
+    var tenVangLai = phieuInfo?.Tenkhach ?? banInfo?.Tenkhach;
+    var sdtVangLai = phieuInfo?.Sdtkhach ?? banInfo?.Sdtkhach;
+    var monHuy = ViewBag.MonHuy as List<HuyMon> ?? new List<HuyMon>();
+    var phuPhiList = ViewBag.PhuPhiList as List<PhuPhi> ?? new List<PhuPhi>();
+    int tongPhuPhi = ViewBag.TongPhuPhi is int tpp ? tpp : 0;
+    var caDangMo = ViewBag.CaDangMo as CaLamViec;
+}
+
+@if (caDangMo == null)
+{
+    <div class="alert alert-warning mt-3">
+        <i class="bi bi-exclamation-triangle"></i> Chưa mở ca làm việc - không thanh toán được.
+        <a asp-controller="Admin_Ca" asp-action="Index" class="btn btn-sm btn-warning ms-2">Mở ca</a>
+    </div>
+}
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["ErrorMessage"]</div>
+}
+
+<form asp-action="XuatHoaDon" asp-controller="PhieuGoiMon" method="post">
+    <div class="container mt-5">
+        <h2 class="mb-4 text-center text-primary">Chi Tiết Phiếu Gọi Món</h2>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <p><strong>Mã Phiếu:</strong> @ViewBag.MaPGM</p>
+                <input type="hidden" name="MaPhieu" value="@ViewBag.MaPGM" />
+            </div>
+            <div class="col-md-6 text-md-end">
+                <p><strong>Mã Bàn:</strong> @ViewBag.MaBan</p>
+                <input type="hidden" name="MaBan" value="@ViewBag.MaBan" />
+                <input type="hidden" name="MaNV" value="@Context.Session.GetString("MaNV")" />
+            </div>
+        </div>
+
+        <div class="alert @(khBan != null ? "alert-success" : "alert-secondary")">
+            @if (khBan != null)
+            {
+                <i class="bi bi-person-check"></i>
+                <span>Phiếu của khách <strong>@khBan.Hoten</strong> (bàn @ViewBag.MaBan) -
+                    tài khoản <strong>@khBan.MataikhoanNavigation?.Tendangnhap</strong>
+                    (Mã KH @khBan.Makh.Trim(), SĐT @khBan.Sodt?.Trim(), @(khBan.Diemthanhvien ?? 0) điểm).</span>
+            }
+            else if (!string.IsNullOrWhiteSpace(tenVangLai))
+            {
+                <span><i class="bi bi-person"></i> Khách vãng lai: <strong>@tenVangLai</strong> @sdtVangLai
+                    (không có tài khoản - nhập SĐT bên dưới nếu khách là thành viên).</span>
+            }
+            else
+            {
+                <span>Phiếu chưa ghi tên khách / tài khoản. Nhập SĐT bên dưới nếu khách là thành viên.</span>
+            }
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <label class="form-label"><strong>Hình Thức Thanh Toán:</strong></label>
+                <div class="form-control-plaintext text-muted">Chọn <strong>Tiền mặt</strong> hoặc <strong>Chuyển khoản</strong> ở bước Thanh toán</div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label"><strong>SDT Khách hàng:</strong></label>
+                <input type="text" name="SDT_Khach" class="form-control" placeholder="Nhập số điện thoại khách" value="@khBan?.Sodt?.Trim()" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label"><strong>Mã Giảm Giá:</strong></label>
+                <div class="input-group">
+                    <input type="text" id="MaGiamGia" name="MaGiamGia" class="form-control" placeholder="Nhập mã giảm giá" />
+                    <button type="button" class="btn btn-outline-secondary" onclick="kiemTraMa()">Kiểm tra</button>
+                </div>
+                <small id="discount-message"></small>
+            </div>
+        </div>
+
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th class="text-center">Tên Món</th>
+                    <th class="text-center">Mã Món Ăn</th>
+                    <th class="text-center">Số Lượng</th>
+                    <th class="text-center">Đơn Giá</th>
+                    <th class="text-center">Thành Tiền</th>
+                    <th class="text-center">Hủy món</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="text-center">@item.TenMon</td>
+                        <td class="text-center">@item.MaMonAn.Trim()</td>
+                        <td class="text-center">@item.SoLuong</td>
+                        <td class="text-center">@item.DonGia.ToString("N0") VNĐ</td>
+                        <td class="text-center">@item.ThanhTien.ToString("N0") VNĐ</td>
+                        <td class="text-center">
+                            @* Nút mở hộp thoại hủy món (form hủy nằm ngoài form xuất hóa đơn) *@
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill nut-huy-mon"
+                                    data-ma="@item.MaMonAn.Trim()" data-ten="@item.TenMon" data-sl="@item.SoLuong">
+                                <i class="bi bi-x-circle"></i> Hủy
+                            </button>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted">Phiếu chưa có món nào (hoặc đã hủy hết). Bấm "Gọi thêm món" để chọn món.</td></tr>
+                }
+            </tbody>
+        </table>
+
+        @foreach (var item in Model)
+        {
+            <input type="hidden" name="MaMonAn[]" value="@item.MaMonAn.Trim()" />
+            <input type="hidden" name="SoLuong[]" value="@item.SoLuong" />
+        }
+
+        <div class="d-flex justify-content-between align-items-center mt-4">
+            <div>
+                <h4 class="fw-bold mb-0">Tổng Hóa Đơn: @((Model.Sum(x => x.ThanhTien) + tongPhuPhi).ToString("N0")) VNĐ</h4>
+                @if (tongPhuPhi > 0)
+                {
+                    <small class="text-muted">(gồm món @Model.Sum(x => x.ThanhTien).ToString("N0") + phụ phí/bồi thường @tongPhuPhi.ToString("N0"))</small>
+                }
+            </div>
+            <div>
+                <a asp-action="DanhSachPhieuGoiMon" class="btn btn-secondary btn-lg rounded-pill">Quay lại</a>
+                <a asp-action="ChonMon" asp-route-ma="@ViewBag.MaPGM" class="btn btn-warning btn-lg rounded-pill">Gọi thêm món</a>
+                <button type="submit" class="btn btn-primary btn-lg shadow-sm rounded-pill">Xuất Hóa Đơn</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h5 class="text-warning mb-0"><i class="bi bi-receipt"></i> Phụ phí / Bồi thường (khách làm vỡ bát, hỏng đồ...)</h5>
+        <button type="button" class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#modalPhuPhi">
+            <i class="bi bi-plus-circle"></i> Thêm phụ phí
+        </button>
+    </div>
+    @if (phuPhiList.Any())
+    {
+        <table class="table table-sm table-bordered mt-2">
+            <thead class="table-light">
+                <tr class="text-center">
+                    <th>Thời gian</th>
+                    <th>Lý do</th>
+                    <th>Số tiền</th>
+                    <th>Nhân viên</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var pp in phuPhiList)
+                {
+                    <tr class="text-center">
+                        <td>@pp.Thoigian.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td class="text-start">@pp.Noidung</td>
+                        <td>@pp.Sotien.ToString("N0") VNĐ</td>
+                        <td>@pp.Manv?.Trim()</td>
+                        <td>
+                            <form asp-action="XoaPhuPhi" asp-controller="PhieuGoiMon" method="post" class="d-inline"
+                                  data-hoi="Xóa khoản phụ phí này?" onsubmit="return confirm(this.dataset.hoi);">
+                                <input type="hidden" name="id" value="@pp.Maphuphi" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="text-muted mt-2">Chưa có khoản phụ phí / bồi thường nào cho phiếu này.</p>
+    }
+</div>
+
+@* Hộp thoại thêm phụ phí / bồi thường *@
+<div class="modal fade" id="modalPhuPhi" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form asp-action="ThemPhuPhi" asp-controller="PhieuGoiMon" method="post" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-warning"><i class="bi bi-receipt"></i> Thêm phụ phí / bồi thường</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="MaPhieu" value="@ViewBag.MaPGM" />
+                <input type="hidden" name="MaBan" value="@ViewBag.MaBan" />
+                <div class="mb-3">
+                    <label class="form-label">Lý do (VD: Khách làm vỡ 2 bát, làm hỏng khăn trải bàn...)</label>
+                    <input type="text" name="NoiDung" class="form-control" maxlength="200" required placeholder="Nhập lý do thu phụ phí / bồi thường" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Số tiền (đ)</label>
+                    <input type="number" name="SoTien" class="form-control" min="1000" step="1000" required placeholder="VD: 50000" />
+                </div>
+                <p class="small text-muted mb-0">Khoản này sẽ được cộng vào tổng hóa đơn của bàn và ghi riêng vào két tiền của ca (mục "Thu bồi thường").</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="submit" class="btn btn-warning">Xác nhận thêm phụ phí</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (monHuy.Any())
+{
+    <div class="container mt-4">
+        <h5 class="text-danger"><i class="bi bi-x-octagon"></i> Món đã hủy của phiếu (không tính tiền)</h5>
+        <table class="table table-sm table-bordered">
+            <thead class="table-light">
+                <tr class="text-center">
+                    <th>Thời gian</th>
+                    <th>Món</th>
+                    <th>Số lượng hủy</th>
+                    <th>Lý do</th>
+                    <th>Nhân viên</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var h in monHuy)
+                {
+                    <tr class="text-center">
+                        <td>@h.Thoigian.ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>@(h.Tenmon ?? h.Mamonan.Trim())</td>
+                        <td>@h.Soluong</td>
+                        <td>@h.Lydo</td>
+                        <td>@h.Manv?.Trim()</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@* Hộp thoại hủy món *@
+<div class="modal fade" id="modalHuyMon" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form asp-action="HuyMonAn" asp-controller="PhieuGoiMon" method="post" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="bi bi-x-circle"></i> Hủy món: <span id="huyTenMon"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Đóng"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="MaPhieu" value="@ViewBag.MaPGM" />
+                <input type="hidden" name="MaMonAn" id="huyMaMon" />
+                <div class="mb-3">
+                    <label class="form-label">Số lượng hủy (đang gọi <span id="huySlCo"></span>)</label>
+                    <input type="number" name="SoLuongHuy" id="huySoLuong" class="form-control" min="1" value="1" required />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label">Lý do hủy</label>
+                    @for (int i = 0; i < LyDoHuyMon.GoiY.Length; i++)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="LyDo" id="lydo@(i)" value="@LyDoHuyMon.GoiY[i]" @(i == 0 ? "checked" : "") required />
+                            <label class="form-check-label" for="lydo@(i)">@LyDoHuyMon.GoiY[i]</label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="submit" class="btn btn-danger">Xác nhận hủy món</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Đưa hộp thoại hủy món / thêm phụ phí ra thẳng <body> để không bị lớp nền mờ che
+        (function () {
+            ['modalHuyMon', 'modalPhuPhi'].forEach(function (id) {
+                var m = document.getElementById(id);
+                if (m && m.parentElement !== document.body) document.body.appendChild(m);
+            });
+        })();
+
+        // Mở hộp thoại hủy món cho đúng món được bấm
+        $(document).on('click', '.nut-huy-mon', function () {
+            var nut = $(this), sl = parseInt(nut.data('sl')) || 1;
+            $('#huyMaMon').val(nut.data('ma'));
+            $('#huyTenMon').text(nut.data('ten'));
+            $('#huySlCo').text(sl);
+            $('#huySoLuong').attr('max', sl).val(sl);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalHuyMon')).show();
+        });
+
+        // GioHang/KiemTraMa trả về true/false (JSON)
+        function kiemTraMa() {
+            const ma = $('#MaGiamGia').val();
+            const msg = $('#discount-message');
+            if (!ma || !ma.trim()) { msg.text(''); return; }
+            $.post('/GioHang/ThongTinMa', { discountCode: ma }, function (kq) {
+                var hopLe = kq && kq.hopLe;
+                msg.text(hopLe ? 'Mã giảm giá hợp lệ - ' + (kq.moTa || '') : 'Mã giảm giá không hợp lệ')
+                   .css('color', hopLe ? 'green' : 'red');
+            }).fail(function () { msg.text('Không kiểm tra được mã').css('color', 'red'); });
+        }
+    </script>
+}

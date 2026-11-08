@@ -1,0 +1,158 @@
+﻿@model List<HoaDon>
+@{
+    ViewData["Title"] = "Người Mua Trực Tuyến";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    string tab = ViewBag.Tab as string ?? TrangThaiDon.ChoXacNhan;
+    var dem = ViewBag.Dem as Dictionary<string, int> ?? new Dictionary<string, int>();
+    var soMon = ViewBag.SoMon as Dictionary<string, int> ?? new Dictionary<string, int>();
+    int tong = ViewBag.TongDon is int t ? t : 0;
+    var cacTab = new (string Ma, string Ten, string Icon)[]
+    {
+        (TrangThaiDon.ChoXacNhan, "Chờ xác nhận thanh toán", "bi-hourglass-split"),
+        (TrangThaiDon.DaXacNhan, "Đã xác nhận - chờ giao", "bi-check2-circle"),
+        (TrangThaiDon.DaGiao, "Đã giao", "bi-truck"),
+        (TrangThaiDon.DaHuy, "Đã hủy", "bi-x-circle"),
+        ("TatCa", "Tất cả", "bi-list-ul"),
+    };
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <h2 style="color:#fa8f23"><i class="bi bi-globe2"></i> Người Mua Trực Tuyến</h2>
+        <a asp-controller="NhaHang" asp-action="ShowHD" class="btn btn-outline-secondary"><i class="bi bi-receipt"></i> Tất cả hóa đơn bán hàng</a>
+    </div>
+    <p class="text-muted">Hóa đơn của khách đã đăng nhập, đặt món và thanh toán trên web.
+        Khách phải <strong>chuyển khoản trước 100%</strong> và gửi ảnh giao dịch. Quy trình:
+        <strong>Chờ xác nhận</strong> (kiểm tra tiền) → <em>Đã nhận tiền - Xác nhận đơn</em> → <strong>Đã xác nhận</strong> → <em>Xác nhận giao</em> → <strong>Đã giao</strong>.</p>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <ul class="nav nav-tabs mb-3">
+        @foreach (var tb in cacTab)
+        {
+            int so = tb.Ma == "TatCa" ? tong : dem.GetValueOrDefault(tb.Ma);
+            <li class="nav-item">
+                <a class="nav-link @(tab == tb.Ma ? "active fw-bold" : "")" asp-action="DanhSach" asp-route-tt="@tb.Ma">
+                    <i class="bi @tb.Icon"></i> @tb.Ten
+                    <span class="badge @(tb.Ma == TrangThaiDon.ChoXacNhan && so > 0 ? "bg-danger" : "bg-secondary")">@so</span>
+                </a>
+            </li>
+        }
+    </ul>
+
+    <div class="card shadow-sm">
+        <div class="card-body table-responsive">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Mã HĐ</th>
+                        <th>Thời gian đặt</th>
+                        <th>Khách hàng</th>
+                        <th>Nhận món</th>
+                        <th class="text-center">Số món</th>
+                        <th class="text-end">Đã thanh toán</th>
+                        <th>Trạng thái</th>
+                        <th style="min-width:220px">Xử lý</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Any())
+                    {
+                        <tr><td colspan="8" class="text-center text-muted py-4">Không có đơn nào.</td></tr>
+                    }
+                    @foreach (var hd in Model)
+                    {
+                        var kh = hd.MakhNavigation;
+                        string ma = hd.Mahoadon.Trim();
+                        <tr>
+                            <td class="fw-bold">@ma</td>
+                            <td>
+                                @hd.Ngaylap?.ToString("dd/MM/yyyy HH:mm")
+                                @if (hd.Trangthai?.Trim() == TrangThaiDon.ChoXacNhan && hd.Ngaylap != null)
+                                {
+                                    var phut = (int)(DateTime.Now - hd.Ngaylap.Value).TotalMinutes;
+                                    <div class="small @(phut >= 15 ? "text-danger fw-bold" : "text-muted")">đã chờ @phut phút</div>
+                                }
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@hd.TenHienThi</div>
+                                <small class="text-muted">
+                                    @(kh?.MataikhoanNavigation?.Tendangnhap ?? kh?.Makh.Trim())
+                                    @{ var sdt = (hd.Sdtkhach ?? kh?.Sodt)?.Trim(); }
+                                    @if (!string.IsNullOrEmpty(sdt))
+                                    {
+                                        <span> · <i class="bi bi-telephone"></i> @sdt</span>
+                                    }
+                                </small>
+                            </td>
+                            <td style="max-width:260px">
+                                @if (!string.IsNullOrWhiteSpace(hd.Maban))
+                                {
+                                    <span class="badge bg-primary">Tại bàn @hd.Maban.Trim()</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(hd.Diachigiao))
+                                {
+                                    <span><i class="bi bi-geo-alt"></i> @hd.Diachigiao</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Chưa ghi địa chỉ</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(hd.Ghichu))
+                                {
+                                    <div class="small text-muted"><i class="bi bi-chat-left-text"></i> @hd.Ghichu</div>
+                                }
+                            </td>
+                            <td class="text-center">@soMon.GetValueOrDefault(ma)</td>
+                            <td class="text-end">
+                                @((hd.Tongtien ?? 0).ToString("N0")) đ
+                                <div class="small text-muted">@hd.Hinhthuc</div>
+                                @if (!string.IsNullOrWhiteSpace(hd.Anhchuyenkhoan))
+                                {
+                                    <a href="@Url.Content("~/Images/ChuyenKhoan/" + hd.Anhchuyenkhoan.Trim())" target="_blank" class="small">
+                                        <i class="bi bi-image"></i> Ảnh CK
+                                    </a>
+                                }
+                                else if (hd.Trangthai?.Trim() == TrangThaiDon.ChoXacNhan)
+                                {
+                                    <div class="small text-danger">Chưa có ảnh CK</div>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @TrangThaiDon.MauBadge(hd.Trangthai)">@hd.Trangthai</span>
+                                @if (hd.Trangthai?.Trim() == TrangThaiDon.DaHuy && !string.IsNullOrWhiteSpace(hd.Lydohuy))
+                                {
+                                    <div class="small text-danger">@hd.Lydohuy</div>
+                                }
+                                @if (hd.ManvNavigation != null)
+                                {
+                                    <div class="small text-muted">NV: @hd.ManvNavigation.Hoten</div>
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="ChiTiet" asp-route-ma="@ma" asp-route-tt="@tab" class="btn btn-sm btn-info mb-1">
+                                    <i class="bi bi-receipt"></i> Hóa đơn
+                                </a>
+                                <partial name="_NutXuLy" model="@(new NutXuLyDonModel { Don = hd, Tab = tab, VeChiTiet = false })" />
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<datalist id="lyDoHuyDon">
+    <option value="Không nhận được tiền chuyển khoản"></option>
+    <option value="Số tiền chuyển không đủ"></option>
+    <option value="Ảnh chuyển khoản không hợp lệ"></option>
+    <option value="Hết món"></option>
+    <option value="Khách yêu cầu hủy"></option>
+</datalist>

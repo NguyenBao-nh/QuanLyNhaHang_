@@ -1,0 +1,129 @@
+﻿@model CaLamViec
+@{
+    Layout = null;
+    bool tuIn = Context.Request.Query["auto"] == "1";
+    var gd = ViewBag.GiaoDich as List<GiaoDichKet> ?? new List<GiaoDichKet>();
+    var tam = ViewBag.TongKet as QuanLyNhaHang_.Services.XuLyKet.TongKetCa;
+    var c = Model;
+    // Ca chưa đóng: lấy số tính tạm
+    int soHD = c.Sohoadon ?? tam?.SoHoaDon ?? 0;
+    int doanhThu = c.Doanhthu ?? tam?.DoanhThu ?? 0;
+    int thuTM = c.Thutienmat ?? tam?.ThuTienMat ?? 0;
+    int thuCK = c.Thuchuyenkhoan ?? tam?.DoanhThuChuyenKhoan ?? 0;
+    int chi = c.Tongchi ?? tam?.TongChi ?? 0;
+    int rut = c.Tongrut ?? tam?.TienRut ?? 0;
+    int ketCuoi = c.Tienketcuoi ?? tam?.TienKet ?? 0;
+    int? lech = c.Tienthucte == null ? null : c.Tienthucte - ketCuoi;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Phiếu đóng ca @c.Maca.Trim() - FREEDOM</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #ececec; font-family: "Segoe UI", Arial, sans-serif; color: #222; }
+        .thanh-cong-cu { display: flex; justify-content: center; gap: 10px; padding: 16px; }
+        .thanh-cong-cu button, .thanh-cong-cu a { padding: 10px 22px; border: 0; border-radius: 6px; font-size: 15px; cursor: pointer; text-decoration: none; }
+        .btn-in { background: #ff8d25; color: #fff; font-weight: 600; }
+        .btn-dong { background: #6c757d; color: #fff; }
+        .phieu { width: 80mm; max-width: 100%; margin: 0 auto 30px; background: #fff; padding: 18px 16px 24px;
+                 box-shadow: 0 4px 18px rgba(0,0,0,.15); font-size: 13px; line-height: 1.5; }
+        .tieu-de { text-align: center; }
+        .tieu-de h1 { margin: 0; font-size: 22px; letter-spacing: 2px; }
+        .tieu-de p { margin: 2px 0; font-size: 12px; color: #555; }
+        .ten { text-align: center; font-weight: 700; font-size: 15px; margin: 12px 0 8px; text-transform: uppercase; }
+        .ngang { border-top: 1px dashed #999; margin: 10px 0; }
+        .dong { display: flex; justify-content: space-between; gap: 8px; }
+        .dong span:first-child { color: #555; }
+        .dam { font-weight: 700; }
+        .tong { font-size: 16px; font-weight: 700; }
+        .nho { font-size: 11px; color: #555; }
+        .ky { display: flex; justify-content: space-between; margin-top: 18px; text-align: center; font-size: 12px; }
+        .ky div { width: 48%; }
+        .ky .cho-ky { height: 46px; }
+        .canh-bao { background: #fff3cd; padding: 6px; text-align: center; font-weight: 600; }
+        @@media print {
+            @@page { size: 80mm auto; margin: 4mm; }
+            body { background: #fff; }
+            .thanh-cong-cu { display: none; }
+            .phieu { box-shadow: none; margin: 0; width: 100%; padding: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="thanh-cong-cu">
+        <button type="button" class="btn-in" onclick="window.print()">🖨 In phiếu</button>
+        <a class="btn-dong" href="@Url.Action("Index", "Admin_Ca")">Về trang ca</a>
+    </div>
+
+    <div class="phieu">
+        <div class="tieu-de">
+            <h1>FREEDOM</h1>
+            <p>Nhà hàng chay</p>
+            <p>88 Láng Hạ, Đống Đa, Hà Nội</p>
+        </div>
+
+        <div class="ten">Phiếu đóng ca</div>
+        @if (c.DangMo)
+        {
+            <div class="canh-bao">CA CHƯA ĐÓNG - SỐ LIỆU TẠM TÍNH</div>
+        }
+
+        <div class="dong"><span>Mã ca:</span><b>@c.Maca.Trim()</b></div>
+        <div class="dong"><span>Ca:</span><span>@c.Loaica - ngày @c.Ngay.ToString("dd/MM/yyyy")</span></div>
+        <div class="dong"><span>Mở ca:</span><span>@c.Tgmo.ToString("dd/MM/yyyy HH:mm")</span></div>
+        <div class="dong"><span>NV mở ca:</span><span>@c.Tennvmo (@c.Manvmo?.Trim())</span></div>
+        <div class="dong"><span>Đóng ca:</span><span>@(c.Tgdong?.ToString("dd/MM/yyyy HH:mm") ?? "-")</span></div>
+        <div class="dong"><span>NV đóng ca:</span><span>@(c.Tennvdong ?? "-") @(string.IsNullOrWhiteSpace(c.Manvdong) ? "" : "(" + c.Manvdong.Trim() + ")")</span></div>
+
+        <div class="ngang"></div>
+        <div class="dong dam"><span style="color:#222">DOANH THU CA (@soHD HĐ):</span><span>@doanhThu.ToString("N0") đ</span></div>
+        <div class="dong"><span>- Tiền mặt:</span><span>@thuTM.ToString("N0") đ</span></div>
+        <div class="dong"><span>- Chuyển khoản:</span><span>@thuCK.ToString("N0") đ</span></div>
+
+        <div class="ngang"></div>
+        <div class="dong"><span>Tiền đầu ca:</span><span>@c.Tiendauca.ToString("N0") đ</span></div>
+        <div class="dong"><span>+ Tiền mặt thu:</span><span>@thuTM.ToString("N0") đ</span></div>
+        <div class="dong"><span>- Chi tiêu:</span><span>@chi.ToString("N0") đ</span></div>
+        <div class="dong"><span>- Rút khỏi két:</span><span>@rut.ToString("N0") đ</span></div>
+        <div class="dong tong"><span style="color:#222">TIỀN KÉT CUỐI CA:</span><span>@ketCuoi.ToString("N0") đ</span></div>
+        @if (c.Tienthucte != null)
+        {
+            <div class="dong"><span>Tiền đếm thực tế:</span><span>@c.Tienthucte.Value.ToString("N0") đ</span></div>
+            <div class="dong dam"><span>Chênh lệch:</span><span>@(lech > 0 ? "+" : "")@((lech ?? 0).ToString("N0")) đ</span></div>
+        }
+
+        @if (gd.Any())
+        {
+            <div class="ngang"></div>
+            <div class="dam">Chi tiêu / rút tiền / thu khác trong ca</div>
+            @foreach (var g in gd)
+            {
+                <div class="dong nho">
+                    <span>@g.Thoigian.ToString("HH:mm") @LoaiGiaoDichKet.Ten(g.Loai)@(string.IsNullOrWhiteSpace(g.Noidung) ? "" : ": " + g.Noidung)@(string.IsNullOrWhiteSpace(g.Machungtu) ? "" : " (" + g.Machungtu + ")")</span>
+                    <span>@(g.LaTienVao ? "+" : "-")@g.Sotien.ToString("N0")</span>
+                </div>
+            }
+        }
+
+        @if (!string.IsNullOrWhiteSpace(c.Ghichu))
+        {
+            <div class="ngang"></div>
+            <div><span class="nho">Ghi chú:</span> @c.Ghichu</div>
+        }
+
+        <div class="ky">
+            <div>NV giao ca<div class="cho-ky"></div>@(c.Tennvdong ?? c.Tennvmo)</div>
+            <div>Quản lý / NV nhận ca<div class="cho-ky"></div>&nbsp;</div>
+        </div>
+        <div class="nho" style="text-align:center;margin-top:8px">In lúc @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+    </div>
+
+    @if (tuIn)
+    {
+        <script>window.addEventListener('load', function () { setTimeout(function () { window.print(); }, 300); });</script>
+    }
+</body>
+</html>

@@ -1,0 +1,186 @@
+﻿@model List<ChiTietHoaDon>
+@{
+    ViewData["Title"] = "Hóa Đơn Trực Tuyến";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    var hd = (HoaDon)ViewBag.HoaDon;
+    var kh = hd.MakhNavigation;
+    string? tab = ViewBag.Tab as string;
+    int tongMon = ViewBag.Tong is int t ? t : 0;
+    int daThu = hd.Tongtien ?? 0;
+    int giam = Math.Max(0, tongMon - daThu);
+    string ma = hd.Mahoadon.Trim();
+    string tt = hd.Trangthai?.Trim() ?? "";
+
+    // Các bước của đơn
+    var buoc = new[] { TrangThaiDon.ChoXacNhan, TrangThaiDon.DaXacNhan, TrangThaiDon.DaGiao };
+    int buocHienTai = Array.IndexOf(buoc, tt);
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0">Hóa đơn trực tuyến <span style="color:#fa8f23">@ma</span></h2>
+        <div>
+            <a asp-controller="NhaHang" asp-action="InHoaDon" asp-route-ma="@ma" asp-route-auto="1" target="_blank" class="btn btn-primary">
+                <i class="bi bi-printer"></i> In hóa đơn
+            </a>
+            <a asp-action="DanhSach" asp-route-tt="@tab" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Danh sách</a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @* Thanh tiến trình đơn *@
+    <div class="card mb-3">
+        <div class="card-body">
+            @if (tt == TrangThaiDon.DaHuy)
+            {
+                <div class="alert alert-danger mb-0">
+                    <i class="bi bi-x-circle"></i> Đơn đã hủy. Lý do: <strong>@hd.Lydohuy</strong>
+                </div>
+            }
+            else
+            {
+                <div class="d-flex justify-content-between text-center">
+                    @for (int i = 0; i < buoc.Length; i++)
+                    {
+                        bool xong = buocHienTai >= i;
+                        string? tg = i == 0 ? hd.Ngaylap?.ToString("dd/MM HH:mm")
+                                   : i == 1 ? hd.Tgxacnhan?.ToString("dd/MM HH:mm")
+                                   : hd.Tggiao?.ToString("dd/MM HH:mm");
+                        <div class="flex-fill">
+                            <div class="rounded-circle mx-auto mb-1 d-flex align-items-center justify-content-center @(xong ? "bg-success text-white" : "bg-light text-muted border")"
+                                 style="width:40px;height:40px">@(i + 1)</div>
+                            <div class="@(xong ? "fw-bold" : "text-muted")">@(i == 0 ? "Đặt & thanh toán" : buoc[i])</div>
+                            <small class="text-muted">@tg</small>
+                        </div>
+                    }
+                </div>
+            }
+            <div class="mt-3 text-center">
+                <partial name="_NutXuLy" model="@(new NutXuLyDonModel { Don = hd, Tab = tab, VeChiTiet = true })" />
+            </div>
+        </div>
+    </div>
+
+    @* Chứng từ thanh toán trước - kiểm tra trước khi bấm "Đã nhận tiền - Xác nhận đơn" *@
+    <div class="card mb-3 @(tt == TrangThaiDon.ChoXacNhan ? "border-warning" : "")">
+        <div class="card-header"><strong><i class="bi bi-bank"></i> Thanh toán chuyển khoản</strong></div>
+        <div class="card-body row">
+            <div class="col-md-7">
+                <p class="mb-1"><strong>Số tiền phải nhận:</strong> <span class="text-danger fs-5">@daThu.ToString("N0") đ</span></p>
+                <p class="mb-1"><strong>Nội dung chuyển khoản:</strong> @ma</p>
+                <p class="mb-1"><strong>Mã giao dịch khách nhập:</strong> @(string.IsNullOrWhiteSpace(hd.Magiaodich) ? "-" : hd.Magiaodich)</p>
+                <p class="mb-1">
+                    <strong>Tình trạng tiền:</strong>
+                    @if (hd.Tgxacnhan != null && tt != TrangThaiDon.DaHuy)
+                    {
+                        <span class="badge bg-success">Đã nhận tiền lúc @hd.Tgxacnhan.Value.ToString("dd/MM HH:mm")</span>
+                    }
+                    else if (tt == TrangThaiDon.ChoXacNhan)
+                    {
+                        <span class="badge bg-warning text-dark">Chưa đối soát - kiểm tra tài khoản ngân hàng</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">@(tt == TrangThaiDon.DaHuy ? "Đơn đã hủy" : "Đơn cũ (trước khi bắt buộc thanh toán trước)")</span>
+                    }
+                </p>
+                @if (tt == TrangThaiDon.ChoXacNhan)
+                {
+                    <p class="small text-muted mb-0">Chỉ bấm "Đã nhận tiền - Xác nhận đơn" khi tài khoản đã nhận đủ tiền với đúng nội dung.
+                        Không thấy tiền thì "Hủy đơn" với lý do "Không nhận được tiền chuyển khoản".</p>
+                }
+            </div>
+            <div class="col-md-5 text-center">
+                @if (!string.IsNullOrWhiteSpace(hd.Anhchuyenkhoan))
+                {
+                    var anh = Url.Content("~/Images/ChuyenKhoan/" + hd.Anhchuyenkhoan.Trim());
+                    <a href="@anh" target="_blank"><img src="@anh" alt="Ảnh chuyển khoản" class="img-fluid rounded border" style="max-height:260px" /></a>
+                    <div class="small text-muted">Bấm vào ảnh để xem lớn</div>
+                }
+                else
+                {
+                    <span class="text-muted">Không có ảnh chuyển khoản</span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header"><strong>Khách hàng</strong></div>
+                <div class="card-body">
+                    <p class="mb-1"><strong>Họ tên:</strong> @hd.TenHienThi</p>
+                    <p class="mb-1"><strong>Tài khoản:</strong> @(kh?.MataikhoanNavigation?.Tendangnhap ?? "-") @(kh != null ? "(Mã KH " + kh.Makh.Trim() + ")" : "")</p>
+                    <p class="mb-1"><strong>SĐT:</strong> @((hd.Sdtkhach ?? kh?.Sodt)?.Trim())</p>
+                    <p class="mb-0"><strong>Email:</strong> @ViewBag.Email</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-3">
+                <div class="card-header"><strong>Nhận món & thanh toán</strong></div>
+                <div class="card-body">
+                    <p class="mb-1">
+                        <strong>Nhận món:</strong>
+                        @if (!string.IsNullOrWhiteSpace(hd.Maban))
+                        {
+                            <span class="badge bg-primary">Phục vụ tại bàn @hd.Maban.Trim()</span>
+                        }
+                        else
+                        {
+                            <span>@(hd.Diachigiao ?? "Chưa ghi địa chỉ")</span>
+                        }
+                    </p>
+                    <p class="mb-1"><strong>Ghi chú:</strong> @(string.IsNullOrWhiteSpace(hd.Ghichu) ? "-" : hd.Ghichu)</p>
+                    <p class="mb-1"><strong>Thời gian đặt:</strong> @hd.Ngaylap?.ToString("dd/MM/yyyy HH:mm")</p>
+                    <p class="mb-1"><strong>Hình thức:</strong> @hd.Hinhthuc · <strong>Mã giảm:</strong> @(hd.Magiamgia?.Trim() ?? "-")</p>
+                    <p class="mb-0"><strong>Nhân viên xử lý:</strong> @(hd.ManvNavigation?.Hoten ?? "Chưa có")</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><strong>Món đã đặt</strong></div>
+        <div class="card-body table-responsive">
+            <table class="table table-striped text-center align-middle">
+                <thead class="table-dark">
+                    <tr><th>Mã món</th><th>Tên món</th><th>Đơn giá</th><th>Số lượng</th><th>Thành tiền</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model)
+                    {
+                        <tr>
+                            <td>@c.Mamonan.Trim()</td>
+                            <td>@c.MamonanNavigation?.Tenmon</td>
+                            <td>@((c.MamonanNavigation?.Gia ?? 0).ToString("N0")) đ</td>
+                            <td>@c.Soluong</td>
+                            <td>@((c.Thanhtien ?? 0).ToString("N0")) đ</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="text-end">
+                <div>Tổng tiền món: <strong>@tongMon.ToString("N0") đ</strong></div>
+                <div>Giảm giá: <strong>@giam.ToString("N0") đ</strong></div>
+                <h5 class="mt-1">Khách đã thanh toán: <strong class="text-danger">@daThu.ToString("N0") đ</strong></h5>
+            </div>
+        </div>
+    </div>
+</div>
+<datalist id="lyDoHuyDon">
+    <option value="Không nhận được tiền chuyển khoản"></option>
+    <option value="Số tiền chuyển không đủ"></option>
+    <option value="Ảnh chuyển khoản không hợp lệ"></option>
+    <option value="Hết món"></option>
+    <option value="Khách yêu cầu hủy"></option>
+</datalist>

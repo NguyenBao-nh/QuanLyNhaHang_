@@ -1,0 +1,210 @@
+﻿@{
+    ViewBag.Title = "Welcome";
+    Layout = "~/Views/Shared/layout_user.cshtml";
+}
+
+<div class="home-area">
+        <div class="d-table">
+            <div class="d-table-cell">
+                <div class="container">
+                    <div class="row align-items-center">
+                        <div class="col-lg-10 offset-lg-1 col-md-12">
+                            <div class="main-banner-content">
+                                <h4 class="custom-font">Chào Mừng Đến Với FREEDOM</h4>
+                                <h1>Thiên Đường Ẩm Thực</h1>
+                                <p>Thanh lọc tâm hồn, dưỡng lành cơ thể.</p>
+                                <div class="banner-btn">
+                                    <a href="@Url.Action("Menu", "MonAn")" class="default-btn-one">Xem Menu <span></span></a>
+                                    <a href="@Url.Action("DatBan1", "DatBan")" class="default-btn">Đặt bàn Ngay<span></span></a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <section id="features" class="features-section pt-70 pb-30">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-4 col-md-6">
+                    <div class="single-features-item">
+                        <div class="features-icon">
+                            <img src="/assets/img/icons/features-icon-1.svg" alt="svg icon">
+                        </div>
+                        <h3>Chất lượng cao cấp</h3>
+                        <p>Nhà hàng mang đến trải nghiệm ẩm thực đẳng cấp với dịch vụ tận tình và món ăn tinh tế</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="single-features-item">
+                        <div class="features-icon">
+                            <img src="/assets/img/icons/features-icon-2.svg" alt="svg icon">
+                        </div>
+                        <h3>Nguyên liệu 100% thiên nhiên</h3>
+                        <p>Chúng tôi sử dụng 100% nguyên liệu tươi sạch, đảm bảo thơm ngon, an toàn và đầy chất dinh dưỡng.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4 col-md-6">
+                    <div class="single-features-item">
+                        <div class="features-icon">
+                            <img src="/assets/img/icons/features-icon-3.svg" alt="svg icon">
+                        </div>
+                        <h3>Không gian thư giãn, sang trọng</h3>
+                        <p>Không gian yên bình, thiết kế tinh tế là nơi lý tưởng để bạn thư giãn tâm hồn bằng những món ăn thơm ngon.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <style>
+        .freedom-about { background: #111214; color: #cfcfcf; }
+        .freedom-about .about-img { position: relative; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,.5); }
+        .freedom-about .about-img img { width: 100%; height: 520px; object-fit: cover; display: block; }
+        .freedom-about .about-year {
+            position: absolute; left: 25px; bottom: 25px; padding: 16px 24px;
+            background: #ff8d25; color: #fff; border-radius: 12px; text-align: center; line-height: 1.2;
+        }
+        .freedom-about .about-year b { display: block; font-size: 34px; }
+        .freedom-about h2 { color: #fff; font-size: 36px; margin: 10px 0 20px; }
+        .freedom-about h5 { color: #ff8d25; font-size: 18px; margin: 22px 0 8px; }
+        .freedom-about p { color: #cfcfcf; margin-bottom: 0; }
+        .freedom-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 60px; }
+        .freedom-stats div { padding: 22px 10px; text-align: center; background: #1b1c1f; border-radius: 12px; }
+        .freedom-stats b { display: block; color: #ff8d25; font-size: 30px; }
+        .freedom-certs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 25px; }
+        .freedom-certs div { padding: 24px 20px; background: #1b1c1f; border-radius: 12px; border-top: 3px solid #ff8d25; }
+        .freedom-certs i { font-size: 30px; color: #ff8d25; margin-bottom: 12px; }
+        .freedom-certs strong { display: block; color: #fff; margin-bottom: 6px; }
+        .freedom-certs span { font-size: 14px; }
+        .freedom-reviews { background: #0d0e10; color: #cfcfcf; }
+        .freedom-review-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 25px; }
+        .freedom-review-grid > div { padding: 22px 20px; background: #1b1c1f; border-radius: 12px; border-top: 3px solid #ff8d25; }
+        .freedom-review-grid p { color: #e6e6e6; font-style: italic; margin: 10px 0 14px; }
+        .freedom-review-grid strong { display: block; color: #fff; }
+        .freedom-review-grid > div > span { font-size: 13px; opacity: .7; }
+        .freedom-reviews .rv-sao { color: #f5a623; letter-spacing: 2px; font-size: 18px; }
+        .freedom-reviews .rv-sao span { color: #444; }
+        @@media (max-width: 991px) {
+            .freedom-stats, .freedom-certs, .freedom-review-grid { grid-template-columns: repeat(2, 1fr); }
+            .freedom-about .about-img img { height: 360px; }
+            .freedom-about .about-img { margin-bottom: 40px; }
+        }
+        @@media (max-width: 575px) {
+            .freedom-stats, .freedom-certs { grid-template-columns: 1fr; }
+        }
+    </style>
+
+    <section id="about" class="freedom-about pt-100 pb-100">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="about-img">
+                        <img src="/assets/img/gallery/Buddha-Chay.jpeg" alt="Không gian nhà hàng FREEDOM">
+                        <div class="about-year"><b>2018</b>Năm thành lập</div>
+                    </div>
+                </div>
+                <div class="col-lg-6 ps-lg-5">
+                    <h6 class="sub-title">Về Chúng Tôi</h6>
+                    <h2>FREEDOM – Tự do trong từng món ăn</h2>
+
+                    <h5><i class="fa-solid fa-lightbulb"></i> Ý tưởng bắt nguồn từ đâu?</h5>
+                    <p>
+                        FREEDOM ra đời từ những chuyến đi của nhà sáng lập qua các bếp ngon ở Huế và những quán
+                        hiện đại ở châu Âu. Chúng tôi muốn kết hợp hương vị truyền thống Việt Nam với cách trình bày trẻ trung,
+                        để món ăn không còn món ăn mà là một lựa chọn đặc biệt<em>tự do</em> – tự do cho cơ thể nhẹ nhàng, tâm trí thư thái.
+                    </p>
+
+                    <h5><i class="fa-solid fa-seedling"></i> Mục đích của nhà hàng</h5>
+                    <p>
+                        Lan tỏa lối sống xanh và lành mạnh: mang đến món ăn ngon, đủ dinh dưỡng cho cả người ăn;
+                         giảm tác động tới môi trường bằng nguyên liệu thực vật địa phương và những món thịt nhập khẩu; và tạo một không gian yên bình
+                        để mọi người quây quần bên nhau.
+                    </p>
+
+                    <h5><i class="fa-solid fa-calendar-check"></i> Hành trình</h5>
+                    <p>
+                        Khai trương năm <strong style="color:#fff">2018</strong> tại Hà Nội với 12 món đầu tiên, đến nay FREEDOM đã phục vụ
+                        hơn 50.000 lượt khách với thực đơn hơn 30 món ăn.
+                    </p>
+                </div>
+            </div>
+
+            <div class="freedom-stats">
+                <div><b>2018</b>Năm thành lập</div>
+                <div><b>30+</b>Món mang phong cách việt pha vị châu âu</div>
+                <div><b>100%</b>Nguyên liệu thực vật</div>
+                <div><b>50.000+</b>Lượt khách phục vụ</div>
+            </div>
+
+            <div class="section-title" style="margin: 70px 0 10px;">
+                <h6 class="sub-title">Chứng Nhận An Toàn Vệ Sinh Thực Phẩm</h6>
+            </div>
+            <div class="freedom-certs">
+                <div>
+                    <i class="fa-solid fa-file-shield"></i>
+                    <strong>Cơ sở đủ điều kiện ATTP</strong>
+                    <span>Giấy chứng nhận cơ sở đủ điều kiện an toàn thực phẩm do Ban Quản lý An toàn thực phẩm Hà Nội cấp.</span>
+                </div>
+                <div>
+                    <i class="fa-solid fa-certificate"></i>
+                    <strong>ISO 22000:2018</strong>
+                    <span>Hệ thống quản lý an toàn thực phẩm theo tiêu chuẩn quốc tế, đánh giá lại hằng năm.</span>
+                </div>
+                <div>
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    <strong>HACCP</strong>
+                    <span>Kiểm soát các điểm tới hạn trong toàn bộ quy trình sơ chế, chế biến và bảo quản.</span>
+                </div>
+                <div>
+                    <i class="fa-solid fa-leaf"></i>
+                    <strong>Nguồn rau VietGAP</strong>
+                    <span>Rau củ lấy từ các trang trại đạt chứng nhận VietGAP, có truy xuất nguồn gốc rõ ràng.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    @{
+        var dsDanhGiaMoi = ViewBag.DanhGiaMoi as List<DanhGia> ?? new List<DanhGia>();
+        var tenNguoiDG = ViewBag.TenNguoiDanhGia as Dictionary<string, string> ?? new Dictionary<string, string>();
+    }
+    <!-- ĐÁNH GIÁ MỚI NHẤT (lấy từ CSDL, khách gửi ở trang Đánh giá sẽ hiện ở đây) -->
+    <section id="danh-gia" class="freedom-reviews pt-70 pb-70">
+        <div class="container">
+            <div class="section-title text-center">
+                <h6 class="sub-title">Khách hàng nói gì về FREEDOM</h6>
+            </div>
+            @if (!dsDanhGiaMoi.Any())
+            {
+                <p class="text-center">Chưa có đánh giá nào. Hãy là người đầu tiên!</p>
+            }
+            else
+            {
+                <div class="freedom-review-grid">
+                    @foreach (var d in dsDanhGiaMoi)
+                    {
+                        var maTK = d.Mataikhoan?.Trim() ?? "";
+                        var ten = tenNguoiDG.TryGetValue(maTK, out var t) ? t : "Khách hàng";
+                        var loai = d.Loaidanhgia?.Trim();
+                        var doiTuong = loai == LoaiDanhGia.MonAn ? "Món: " + (d.MamonanNavigation?.Tenmon ?? d.Mamonan?.Trim())
+                                     : loai == LoaiDanhGia.NhanVien ? "Nhân viên: " + (d.ManvNavigation?.Hoten ?? d.Manv?.Trim())
+                                     : "Nhà hàng";
+                        int sao = d.Sosao ?? 0;
+                        <div>
+                            <div class="rv-sao">@(new string('★', sao))<span>@(new string('★', 5 - sao))</span></div>
+                            <p>“@(d.Danhgia!.Length > 180 ? d.Danhgia.Substring(0, 180) + "…" : d.Danhgia)”</p>
+                            <strong>@ten</strong>
+                            <span>@(doiTuong)@(d.Ngaydanhgia.HasValue ? " · " + d.Ngaydanhgia.Value.ToString("dd/MM/yyyy") : "")</span>
+                        </div>
+                    }
+                </div>
+            }
+            <div class="text-center" style="margin-top:30px">
+                <a href="@Url.Action("Index", "DanhGia")" class="default-btn">Xem tất cả / Viết đánh giá <span></span></a>
+            </div>
+        </div>
+    </section>
+

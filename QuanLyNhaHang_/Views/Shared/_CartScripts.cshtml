@@ -1,0 +1,147 @@
+﻿@*
+    Toàn bộ JS của giỏ hàng (ngăn trượt bên phải). Được include MỘT LẦN trong layout_user, SAU khi jQuery + SweetAlert2 đã nạp.
+    Các hàm khai báo global vì HTML (onclick / onchange) gọi trực tiếp.
+*@
+<script>
+    function hide() {
+        var box = document.getElementById("box_aside");
+        if (box) box.style.display = "none";
+    }
+
+    function show() {
+        var box = document.getElementById("box_aside");
+        if (!box) return;
+        box.style.display = "block";
+        updateCart();
+    }
+
+    function thongBaoNho(icon, title) {
+        if (window.Swal) {
+            Swal.fire({ toast: true, position: 'top-end', icon: icon, title: title, showConfirmButton: false, timer: 1500 });
+        }
+    }
+
+    // Tải lại nội dung giỏ + cập nhật số trên biểu tượng giỏ
+    function updateCart() {
+        $.ajax({
+            url: '/GioHang/GetCartItems',
+            type: 'GET',
+            cache: false,
+            success: function (html) {
+                $('#cart-container').html(html);
+                var n = $('#cart-container [data-cart-count]').first().data('cart-count');
+                $('#sl').text(n || 0);
+            },
+            error: function (err) {
+                console.log("Lỗi khi tải giỏ hàng:", err);
+            }
+        });
+    }
+
+    // Server tự lấy tên/giá/ảnh theo mã món nên chỉ cần gửi mã và số lượng
+    function addToCart(maMonAn, soLuong) {
+        $.ajax({
+            url: '/GioHang/AddToCart',
+            type: 'POST',
+            data: { maMonAn: maMonAn, soLuong: soLuong || 1 },
+            success: function (response) {
+                if (response.success) {
+                    $('#sl').text(response.cartCount);
+                    updateCart();
+                    thongBaoNho('success', response.ban
+                        ? 'Đã thêm vào giỏ - món sẽ phục vụ tại bàn ' + response.ban
+                        : 'Đã thêm vào giỏ hàng');
+                } else {
+                    thongBaoNho('error', response.message || 'Không thể thêm vào giỏ hàng!');
+                }
+            },
+            error: function () {
+                thongBaoNho('error', 'Có lỗi xảy ra, vui lòng thử lại!');
+            }
+        });
+    }
+
+    function updateQuantity(maMonAn, soLuong) {
+        $.ajax({
+            url: '/GioHang/CapNhatSoLuong',
+            type: 'POST',
+            data: { maMonAn: maMonAn, soLuong: soLuong },
+            success: function (response) {
+                if (response.success) {
+                    updateCart();
+                } else {
+                    Swal.fire({ title: "Lỗi!", text: "Không thể cập nhật số lượng. Vui lòng thử lại.", icon: "error" });
+                }
+            },
+            error: function () {
+                Swal.fire({ title: "Lỗi!", text: "Có lỗi xảy ra khi cập nhật số lượng.", icon: "error" });
+            }
+        });
+    }
+
+    function removeItem(maMonAn) {
+        Swal.fire({
+            title: "Bạn có chắc chắn?",
+            text: "Sản phẩm này sẽ bị xóa khỏi giỏ hàng!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#3085d6",
+            cancelButtonColor: "#d33",
+            confirmButtonText: "Đồng ý",
+            cancelButtonText: "Hủy"
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url: '/GioHang/RemoveItem',
+                type: 'POST',
+                data: { maMonAn: maMonAn },
+                success: function () {
+                    updateCart();
+                    thongBaoNho('success', 'Đã xóa khỏi giỏ hàng');
+                },
+                error: function () {
+                    Swal.fire({ title: "Lỗi!", text: "Không thể xóa sản phẩm. Vui lòng thử lại.", icon: "error" });
+                }
+            });
+        });
+    }
+
+    function validateDiscountCode() {
+        var discountCode = $('#MaGiamGia').val();
+        $.ajax({
+            url: '/GioHang/ThongTinMa',
+            type: 'POST',
+            data: { discountCode: discountCode },
+            success: function (response) {
+                if (response && response.hopLe) {
+                    $('#discount-message').text('Mã giảm giá hợp lệ - ' + (response.moTa || '')).css('color', 'green');
+                } else {
+                    $('#discount-message').text('Mã giảm giá không hợp lệ').css('color', 'red');
+                }
+            },
+            error: function (error) {
+                console.log('Error:', error);
+            }
+        });
+    }
+
+    $(function () {
+        // Ủy quyền sự kiện: form giỏ hàng bị thay thế mỗi lần updateCart() nên không gắn trực tiếp được
+        $(document).on('submit', '#cart-form', function () {
+            var ma = ($('#MaGiamGia').val() || '').trim();
+            if (ma === '' || $('#discount-message').text() === 'Mã giảm giá không hợp lệ') {
+                $('#MaGiamGia').val('No');
+            }
+        });
+
+        // Bấm vào vùng nền xám bên ngoài ngăn giỏ thì đóng lại
+        $('#box_aside').on('click', function (e) {
+            if (e.target === this) hide();
+        });
+
+        // Phím Esc đóng giỏ
+        $(document).on('keydown', function (e) {
+            if (e.key === 'Escape') hide();
+        });
+    });
+</script>

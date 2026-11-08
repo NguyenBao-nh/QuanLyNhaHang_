@@ -1,0 +1,199 @@
+﻿@{
+    ViewData["Title"] = "Thêm Phiếu Gọi Món";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+
+    var phieuMoi = ViewBag.PhieuMoi as PhieuGoiMon;
+    var dsBan = ViewBag.Ban as List<Ban>;
+    var dsMonAn = ViewBag.dsMonAn as List<MonAn>;
+    var dsKhach = ViewBag.DsKhach as List<KhachHang> ?? new List<KhachHang>();
+    var banMoi = ViewBag.BanMoi as Ban;
+    bool goiThem = ViewBag.GoiThem is bool gt && gt;
+    var monDaGoi = ViewBag.MonDaGoi as List<ChiTietPhieuGoiMonViewModel> ?? new List<ChiTietPhieuGoiMonViewModel>();
+}
+
+<div class="container mt-5">
+    <h2 class="mb-4">@(goiThem ? "Gọi Thêm Món" : "Thêm Phiếu Gọi Món")</h2>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (phieuMoi == null)
+    {
+        <!-- Bước 1: chọn bàn để tạo phiếu -->
+        <form asp-action="ThemPhieu" asp-controller="PhieuGoiMon" method="post">
+            <div class="mb-3">
+                <label class="form-label">Mã Phiếu</label>
+                <input type="text" class="form-control" disabled value="@ViewBag.MaP" />
+            </div>
+            <div class="mb-3">
+                <label for="MaBan" class="form-label">Chọn Bàn</label>
+                <select name="MaBan" id="MaBan" class="form-control" required>
+                    <option value="">Chọn Bàn</option>
+                    @if (dsBan != null)
+                    {
+                        foreach (var item in dsBan)
+                        {
+                            var kh = item.MakhNavigation;
+                            var nhan = item.Maban.Trim() + " - " + (item.Trangthai?.Trim() ?? "");
+                            if (kh != null) nhan += " - " + kh.Hoten + " (TK: " + (kh.MataikhoanNavigation?.Tendangnhap ?? "") + ")";
+                            else if (!string.IsNullOrWhiteSpace(item.Tenkhach)) nhan += " - " + item.Tenkhach + " (vãng lai)";
+                            <option value="@item.Maban.Trim()" data-makh="@item.Makh?.Trim()">@nhan</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="MaKH" class="form-label">Khách hàng ngồi bàn (tài khoản)</label>
+                <select name="MaKH" id="MaKH" class="form-control">
+                    <option value="">— Khách vãng lai / chưa chọn —</option>
+                    @foreach (var k in dsKhach)
+                    {
+                        <option value="@k.Makh.Trim()">@k.Hoten · @k.Sodt?.Trim() · TK: @(k.MataikhoanNavigation?.Tendangnhap) (@k.Makh.Trim())</option>
+                    }
+                </select>
+                <div class="form-text">Bàn đã xếp khách sẽ tự chọn đúng tài khoản. Chọn tài khoản để biết món của bàn này thuộc khách nào.</div>
+            </div>
+            <div class="row" id="khungVangLai">
+                <div class="col-md-7 mb-3">
+                    <label for="TenKhach" class="form-label">Tên khách vãng lai (bắt buộc nếu không chọn tài khoản)</label>
+                    <input type="text" class="form-control" id="TenKhach" name="TenKhach" maxlength="50" />
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label for="SdtKhach" class="form-label">SĐT</label>
+                    <input type="text" class="form-control" id="SdtKhach" name="SdtKhach" maxlength="11" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Thêm Phiếu</button>
+            <a asp-action="DanhSachPhieuGoiMon" class="btn btn-secondary">Quay lại</a>
+        </form>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            @(goiThem ? "Gọi thêm món cho phiếu" : "Phiếu") <strong>@phieuMoi.Mapgm.Trim()</strong> - bàn <strong>@phieuMoi.Maban?.Trim()</strong> (bàn đã chuyển sang "Đầy").
+            @if (banMoi?.MakhNavigation != null && !string.IsNullOrWhiteSpace(phieuMoi.Makh))
+            {
+                <span>Khách: <strong>@banMoi.MakhNavigation.Hoten</strong>
+                    (tài khoản <strong>@banMoi.MakhNavigation.MataikhoanNavigation?.Tendangnhap</strong>, SĐT @banMoi.MakhNavigation.Sodt?.Trim()).</span>
+            }
+            else if (!string.IsNullOrWhiteSpace(phieuMoi.Tenkhach))
+            {
+                <span>Khách vãng lai: <strong>@phieuMoi.Tenkhach</strong> @phieuMoi.Sdtkhach.</span>
+            }
+            Hãy chọn món bên dưới.
+        </div>
+
+        @if (monDaGoi.Any())
+        {
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0">Món đã gọi (món chọn thêm bên dưới sẽ được cộng dồn)</h6></div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Món</th><th class="text-center">SL</th><th class="text-end">Thành tiền</th></tr></thead>
+                        <tbody>
+                            @foreach (var m in monDaGoi)
+                            {
+                                <tr><td>@m.TenMon</td><td class="text-center">@m.SoLuong</td><td class="text-end">@m.ThanhTien.ToString("N0")</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
+        <!-- Bước 2: nhập chi tiết món -->
+        <form asp-action="ThemChiTietPhieuGoiMon" asp-controller="PhieuGoiMon" method="post">
+            <input type="hidden" name="MaBan" value="@phieuMoi.Maban?.Trim()" />
+            <input type="hidden" name="MaPhieu" value="@phieuMoi.Mapgm.Trim()" />
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Nhập Chi Tiết Phiếu Gọi Món</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table truncate">
+                            <thead>
+                                <tr>
+                                    <th>Món Ăn</th>
+                                    <th width="140px">Số Lượng</th>
+                                    <th width="140px">Đơn Giá</th>
+                                    <th width="140px">Thành Tiền</th>
+                                    <th width="100px">Hành Động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="productRows">
+                                <tr>
+                                    <td>
+                                        <select name="MaMonAn" class="form-control" onchange="capNhatDong(this)">
+                                            <option value="">Chọn Món Ăn</option>
+                                            @if (dsMonAn != null)
+                                            {
+                                                foreach (var item in dsMonAn)
+                                                {
+                                                    <option value="@item.Mamonan.Trim()" data-dongia="@((int)(item.Gia ?? 0))">@item.Tenmon</option>
+                                                }
+                                            }
+                                        </select>
+                                    </td>
+                                    <td><input type="number" class="form-control" name="SoLuong" min="1" value="1" oninput="capNhatDong(this)" /></td>
+                                    <td><input type="number" class="form-control" name="DonGia" readonly /></td>
+                                    <td><input type="number" class="form-control" name="ThanhTien" readonly /></td>
+                                    <td><button class="btn btn-danger" type="button" onclick="xoaDong(this)">Xóa</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <button type="button" class="btn btn-dark ms-2 mb-2" id="addNewRow">Thêm Dòng Mới</button>
+                    </div>
+
+                    <div class="text-end mt-3">
+                        <button type="submit" class="btn btn-primary ms-1">Lưu Chi Tiết</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Chọn bàn đã xếp khách -> tự chọn tài khoản khách đó
+        (function () {
+            const selBan = document.getElementById("MaBan");
+            const selKH = document.getElementById("MaKH");
+            if (!selBan || !selKH) return;
+            selBan.addEventListener("change", function () {
+                const o = selBan.options[selBan.selectedIndex];
+                selKH.value = (o && o.dataset.makh) ? o.dataset.makh : "";
+            });
+        })();
+
+        function capNhatDong(el) {
+            const row = el.closest("tr");
+            const select = row.querySelector("select[name='MaMonAn']");
+            const donGia = parseInt(select.options[select.selectedIndex].dataset.dongia) || 0;
+            const soLuong = parseInt(row.querySelector("input[name='SoLuong']").value) || 0;
+            row.querySelector("input[name='DonGia']").value = donGia || "";
+            row.querySelector("input[name='ThanhTien']").value = donGia * soLuong;
+        }
+
+        function xoaDong(btn) {
+            const body = document.getElementById("productRows");
+            if (body.rows.length > 1) btn.closest("tr").remove();   // luôn giữ lại ít nhất một dòng
+        }
+
+        const nutThem = document.getElementById("addNewRow");
+        if (nutThem) nutThem.addEventListener("click", function () {
+            const body = document.getElementById("productRows");
+            const row = body.rows[0].cloneNode(true);
+            row.querySelector("select").selectedIndex = 0;
+            row.querySelector("input[name='SoLuong']").value = 1;
+            row.querySelector("input[name='DonGia']").value = "";
+            row.querySelector("input[name='ThanhTien']").value = "";
+            body.appendChild(row);
+        });
+    </script>
+}

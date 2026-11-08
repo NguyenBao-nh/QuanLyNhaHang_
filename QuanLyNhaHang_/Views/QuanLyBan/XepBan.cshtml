@@ -1,0 +1,156 @@
+﻿@model Ban
+@{
+    ViewData["Title"] = "Xếp bàn cho khách";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+
+    var banTrong = ViewBag.BanTrong as List<Ban> ?? new List<Ban>();
+    var dsKhach = ViewBag.DsKhach as List<KhachHang> ?? new List<KhachHang>();
+    var dangNgoi = ViewBag.KhachDangNgoi as Dictionary<string, string> ?? new Dictionary<string, string>();
+    var phieu = ViewBag.Phieu as PhieuDatBan;
+    var phieuCho = ViewBag.PhieuCho as List<PhieuDatBan> ?? new List<PhieuDatBan>();
+    string maBanChon = Model.Maban?.Trim() ?? "";
+    string maKhChon = Model.Makh?.Trim() ?? "";
+}
+
+<div class="container mt-4" style="max-width: 900px">
+    <h2 class="text-center mb-4" style="color: #f49030">Xếp Bàn Cho Khách</h2>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (phieu != null)
+    {
+        <div class="alert alert-info">
+            Xếp bàn cho phiếu đặt <strong>@phieu.Maphieu</strong>: @phieu.Tenkh · @phieu.Soluong người ·
+            @phieu.Ngaydat?.ToString("dd/MM/yyyy") @phieu.Giodat
+        </div>
+    }
+
+    @if (phieu == null)
+    {
+        <div class="card shadow-sm mb-4">
+            <div class="card-header fw-semibold">
+                <i class="bi bi-calendar-check"></i> Khách đặt trước đang chờ xếp bàn (@phieuCho.Count)
+            </div>
+            <div class="card-body p-0">
+                @if (!phieuCho.Any())
+                {
+                    <p class="text-muted m-3">Không có phiếu đặt bàn nào đang chờ. Khách đã xếp bàn / đã phục vụ không hiện ở đây.</p>
+                }
+                else
+                {
+                    <div class="table-responsive" style="max-height: 260px; overflow-y: auto">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr><th>Mã phiếu</th><th>Ngày / giờ</th><th>Khách</th><th>SĐT</th><th>Số người</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var p in phieuCho)
+                                {
+                                    <tr>
+                                        <td>@p.Maphieu</td>
+                                        <td>@p.Ngaydat?.ToString("dd/MM") @p.Giodat</td>
+                                        <td>@p.Tenkh</td>
+                                        <td>@p.Sdt</td>
+                                        <td>@p.Soluong</td>
+                                        <td class="text-end">
+                                            <a asp-action="XepBan" asp-route-maPhieu="@p.Maphieu" asp-route-maBan="@maBanChon"
+                                               class="btn btn-sm btn-outline-success">Chọn</a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <form asp-action="XepBan" asp-controller="QuanLyBan" method="post" autocomplete="off" class="card shadow-sm">
+        <input type="hidden" name="maPhieu" value="@phieu?.Maphieu" />
+        <div class="card-body">
+            <div class="mb-4">
+                <label class="form-label fw-semibold" for="Maban">Bàn</label>
+                <select class="form-select" id="Maban" name="Maban" required>
+                    <option value="">-- Chọn bàn trống --</option>
+                    @foreach (var b in banTrong)
+                    {
+                        <option value="@b.Maban.Trim()" selected="@(b.Maban.Trim() == maBanChon)">@b.Maban.Trim()</option>
+                    }
+                </select>
+                @if (!banTrong.Any())
+                {
+                    <div class="form-text text-danger">Hiện không còn bàn trống.</div>
+                }
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold" for="Makh">Tài khoản khách hàng</label>
+                <input type="text" class="form-control mb-2" id="locKhach" placeholder="Lọc nhanh theo tên, SĐT, tên đăng nhập hoặc mã KH..." />
+                <select class="form-select" id="Makh" name="Makh" size="7">
+                    <option value="" selected="@(maKhChon == "")">— Khách vãng lai (không có tài khoản) —</option>
+                    @foreach (var k in dsKhach)
+                    {
+                        var ma = k.Makh.Trim();
+                        var tenDN = k.MataikhoanNavigation?.Tendangnhap ?? "";
+                        var banDangNgoi = dangNgoi.GetValueOrDefault(ma);
+                        <option value="@ma"
+                                data-ten="@k.Hoten" data-sdt="@k.Sodt?.Trim()"
+                                data-tim="@($"{k.Hoten} {k.Sodt} {tenDN} {ma}".ToLower())"
+                                disabled="@(banDangNgoi != null)"
+                                selected="@(ma == maKhChon)">
+                            @k.Hoten · @k.Sodt?.Trim() · TK: @tenDN (@ma)@(banDangNgoi != null ? $" — đang ngồi bàn {banDangNgoi}" : "")
+                        </option>
+                    }
+                </select>
+                <div class="form-text">Chọn tài khoản để món khách tự gọi trên web được gắn về bàn này. Khách không có tài khoản thì để "Khách vãng lai" và nhập tên bên dưới.</div>
+            </div>
+
+            <div class="row" id="khungVangLai">
+                <div class="col-md-7 mb-3">
+                    <label class="form-label fw-semibold" for="Tenkhach">Tên khách</label>
+                    <input type="text" class="form-control" id="Tenkhach" name="Tenkhach" maxlength="50" value="@Model.Tenkhach" />
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label class="form-label fw-semibold" for="Sdtkhach">Số điện thoại</label>
+                    <input type="text" class="form-control" id="Sdtkhach" name="Sdtkhach" maxlength="11" value="@Model.Sdtkhach" />
+                </div>
+            </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+            <a asp-action="ShowBan" class="btn btn-secondary">Quay lại</a>
+            <button type="submit" class="btn btn-success"><i class="bi bi-check2-circle"></i> Xếp bàn</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const sel = document.getElementById('Makh');
+            const loc = document.getElementById('locKhach');
+            const ten = document.getElementById('Tenkhach');
+            const sdt = document.getElementById('Sdtkhach');
+
+            // Chọn tài khoản -> điền sẵn tên + SĐT của khách
+            sel.addEventListener('change', function () {
+                const o = sel.options[sel.selectedIndex];
+                if (o && o.value) {
+                    ten.value = o.dataset.ten || '';
+                    sdt.value = o.dataset.sdt || '';
+                }
+            });
+
+            loc.addEventListener('input', function () {
+                const q = loc.value.trim().toLowerCase();
+                [...sel.options].forEach(o => {
+                    if (!o.value) return;
+                    o.hidden = q !== '' && !(o.dataset.tim || '').includes(q);
+                });
+            });
+        })();
+    </script>
+}

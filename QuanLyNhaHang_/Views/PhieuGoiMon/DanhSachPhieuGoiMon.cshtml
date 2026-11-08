@@ -1,0 +1,113 @@
+﻿@model IEnumerable<PhieuGoiMon>
+@{
+    ViewData["Title"] = "Danh Sách Phiếu Gọi Món";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    var banKhach = ViewBag.BanKhach as Dictionary<string, Ban> ?? new Dictionary<string, Ban>();
+    var soMon = ViewBag.SoMon as Dictionary<string, int> ?? new Dictionary<string, int>();
+}
+
+<div class="container mt-5">
+    <h2 class="mb-4 text-center" style="color: #f49030">Danh Sách Phiếu Gọi Món</h2>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="mb-3 text-end">
+        <a asp-action="LichSuHuyMon" asp-controller="PhieuGoiMon" class="btn btn-outline-danger btn-lg me-2">
+            <i class="bi bi-x-octagon me-1"></i> Lịch sử hủy món
+        </a>
+        <a asp-action="ThemPhieuGoiMon" asp-controller="PhieuGoiMon" class="btn btn-success btn-lg">
+            <i class="bi bi-plus-lg me-2"></i> Thêm Mới Phiếu
+        </a>
+    </div>
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Mã Phiếu Gọi Món</th>
+                <th>Mã Bàn</th>
+                <th>Khách hàng</th>
+                <th>Tài khoản</th>
+                <th>Nhân Viên</th>
+                <th>Ngày Lập</th>
+                <th>Trạng Thái</th>
+                <th class="text-center">Hành Động</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.Mapgm.Trim()</td>
+                    <td>@item.Maban?.Trim()</td>
+                    @{
+                        // Ưu tiên khách lưu trên phiếu; phiếu cũ (chưa có cột khách) thì lấy khách đang ngồi ở bàn
+                        var b = banKhach.GetValueOrDefault(item.Maban?.Trim() ?? "");
+                        var khP = item.MakhNavigation ?? b?.MakhNavigation;
+                        var tenP = khP?.Hoten ?? item.Tenkhach ?? b?.Tenkhach;
+                        var sdtP = (khP?.Sodt ?? item.Sdtkhach ?? b?.Sdtkhach)?.Trim();
+                    }
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(tenP))
+                        {
+                            <div class="fw-semibold">@tenP</div>
+                            @if (!string.IsNullOrWhiteSpace(sdtP))
+                            {
+                                <small class="text-muted"><i class="bi bi-telephone"></i> @sdtP</small>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted">Chưa ghi tên khách</span>
+                        }
+                    </td>
+                    <td>
+                        @if (khP != null)
+                        {
+                            <div><i class="bi bi-person-badge"></i> @(khP.MataikhoanNavigation?.Tendangnhap ?? khP.Mataikhoan?.Trim())</div>
+                            <small class="text-muted">Mã KH @khP.Makh.Trim()</small>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Khách vãng lai</span>
+                        }
+                    </td>
+                    <td>@item.Manv?.Trim()</td>
+                    <td>@item.Ngaylap?.ToString("dd/MM/yyyy HH:mm")</td>
+                    @{ int sl = soMon.GetValueOrDefault(item.Mapgm.Trim()); }
+                    <td>
+                        @item.Trangthai
+                        <div>
+                            @if (sl > 0)
+                            {
+                                <span class="badge bg-info text-dark">@sl món</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">Chưa có món</span>
+                            }
+                        </div>
+                    </td>
+                    <td class="text-center">
+                        <a asp-action="ChiTietPhieu" asp-route-ma="@item.Mapgm.Trim()" asp-route-maBan="@item.Maban?.Trim()"
+                           class="btn btn-info btn-sm me-2 rounded-pill" title="Xem món, hủy món, xuất hóa đơn">Chi Tiết / Hủy món</a>
+                        <a asp-action="ChonMon" asp-route-ma="@item.Mapgm.Trim()"
+                           class="btn btn-warning btn-sm me-2 rounded-pill">@(sl > 0 ? "Gọi thêm" : "Chọn món")</a>
+
+                        <form asp-action="XoaPhieu" asp-controller="PhieuGoiMon" method="post" class="d-inline"
+                              onsubmit="return confirm('Xóa phiếu gọi món này?');">
+                            <input type="hidden" name="ma" value="@item.Mapgm.Trim()" />
+                            <button type="submit" class="btn btn-danger btn-sm rounded-pill">Xóa</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

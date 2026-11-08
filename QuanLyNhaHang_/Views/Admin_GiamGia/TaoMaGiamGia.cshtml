@@ -1,0 +1,64 @@
+﻿@model QuanLyNhaHang_.Models.MaGiamGia
+
+@{
+    ViewData["Title"] = "Tạo mã giảm giá";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+}
+
+<h2 class="text-center my-4" style="color: #fa8f23">Tạo Mã Giảm Giá</h2>
+
+<div class="container" style="max-width: 600px">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@err.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form asp-action="TaoMaGiamGia" method="post">
+        <div class="form-group mb-3">
+            <label asp-for="MaGiamGia_Code" class="control-label">Mã giảm giá (để trống để tự sinh)</label>
+            <input asp-for="MaGiamGia_Code" class="form-control" maxlength="20" />
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="NgayBD" class="control-label">Ngày bắt đầu</label>
+            <input asp-for="NgayBD" class="form-control" type="date" />
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="NgayKT" class="control-label">Ngày kết thúc</label>
+            <input asp-for="NgayKT" class="form-control" type="date" />
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="SoLuong" class="control-label">Số lượng</label>
+            <input asp-for="SoLuong" class="form-control" type="number" min="1" />
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="PhanTram" class="control-label">Phần trăm giảm (%) <span class="text-danger">*</span></label>
+            <div class="input-group">
+                <input asp-for="PhanTram" class="form-control" type="number" min="1" max="100" step="1" required />
+                <span class="input-group-text">%</span>
+            </div>
+            <small class="text-muted">Ví dụ nhập 10 = giảm 10% tổng hóa đơn.</small>
+        </div>
+
+        <div class="form-group mb-3">
+            <label asp-for="SoTien" class="control-label">Giảm tối đa (VNĐ) - không bắt buộc</label>
+            <input asp-for="SoTien" class="form-control" type="number" min="0" step="1000" />
+            <small class="text-muted">Để 0 nếu không giới hạn số tiền giảm.</small>
+        </div>
+
+        <div class="d-flex justify-content-between">
+            <a asp-action="HienThiMaGiamGia" class="btn btn-secondary">Quay lại danh sách</a>
+            <button type="submit" class="btn btn-primary">Tạo mã giảm giá</button>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,111 @@
+﻿@model KhachHang
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nhập thông tin khách hàng</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            background-image: url(/Images/bg-dark.jpg);
+            background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            box-sizing: border-box;
+            font-family: "Poppins", sans-serif;
+        }
+        .container {
+            display: block;
+            position: relative;
+            max-width: 450px;
+            backdrop-filter: blur(3px);
+            border: 1px solid #a77f44;
+            border-radius: 15px;
+            padding: 5.3em 2.5em 4em 2.5em;
+            box-shadow: 0px 0px 10px 2px rgba(0, 0, 0, 0.2);
+        }
+        .signup-header {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #755c3d;
+            width: 140px;
+            height: 70px;
+            border-radius: 0 0 20px 20px;
+        }
+        .signup-header span { font-size: 24px; color: #fff; font-weight: bold; }
+        a { text-decoration: none; }
+        .form-control { border-radius: 50px; padding: 10px 15px; border: none; box-shadow: 0 0 8px gray; }
+        .form-control:hover { background-color: #EDCF9F; }
+        .form-label { color: black; }
+        .text-danger { font-weight: bold; padding: 5px; }
+        #buttondangky {
+            background-color: #a77f44; border: none; padding: 5px 20px;
+            border-radius: 15px; color: white; font-weight: bold;
+        }
+        #buttondangky:hover { box-shadow: 0px 0px 8px 8px #EDCF9F; }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="signup-header"><span>Thông tin</span></div>
+
+        <form asp-action="NhapThongTinKhachHang" asp-controller="KhachHang" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Hoten" class="form-label">Họ Tên:</label>
+                <input asp-for="Hoten" class="form-control" maxlength="20" placeholder="Nhập họ tên" required />
+                <span asp-validation-for="Hoten" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Ngaysinh" class="form-label">Ngày Sinh:</label>
+                <input asp-for="Ngaysinh" type="date" class="form-control" required />
+                <span asp-validation-for="Ngaysinh" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Sodt" class="form-label">Số điện thoại:</label>
+                <input asp-for="Sodt" type="tel" class="form-control" maxlength="11" pattern="\d{9,11}" placeholder="Nhập số điện thoại" required />
+                <span asp-validation-for="Sodt" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label for="avatarFile" class="form-label">Avatar:</label>
+                <input type="file" id="avatarFile" name="avatarFile" class="form-control" accept="image/*" />
+            </div>
+
+            <div class="text-center">
+                <button id="buttondangky" type="submit" class="btn btn-success">Lưu thông tin</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <text>
+            Swal.fire({
+                title: 'Lưu thông tin thất bại!',
+                icon: 'error',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            </text>
+        }
+    </script>
+</body>
+</html>

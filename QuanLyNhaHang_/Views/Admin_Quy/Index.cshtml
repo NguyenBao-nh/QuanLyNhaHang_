@@ -1,0 +1,298 @@
+﻿@model ThongKeQuy
+@{
+    ViewData["Title"] = "Quỹ";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+    string Tien(long v) => v.ToString("N0") + " đ";
+    var ng = Model.NgayDangXem;
+    int namNay = DateTime.Today.Year;
+    string ngayStr = Model.Ngay.ToString("yyyy-MM-dd");
+    string homNayStr = DateTime.Today.ToString("yyyy-MM-dd");
+    string TenLoai(string? l) => l == LoaiDon.TrucTuyen ? "Trực tuyến" : "Tại quán";
+    long maxChi = Math.Max(1, Model.TheoThang.Select(x => x.TongChi).DefaultIfEmpty(0).Max());
+}
+
+<div class="container-fluid mt-4">
+    <h2 style="color:#fa8f23"><i class="bi bi-wallet2"></i> Quỹ</h2>
+
+    @if (TempData["LoiQuy"] != null)
+    {
+        <div class="alert alert-danger">@TempData["LoiQuy"]</div>
+    }
+
+    @* ================= DOANH THU THEO NGÀY ================= *@
+    <div id="theo-ngay" class="d-flex flex-wrap justify-content-between align-items-end mb-2 gap-2">
+        <h5 class="m-0">Doanh thu ngày @Model.Ngay.ToString("dd/MM/yyyy")</h5>
+        @if (!Model.ChiXemHomNay)
+        {
+            <form asp-action="Index" method="get" class="d-flex gap-2 align-items-end">
+                <input type="date" name="ngay" value="@ngayStr" max="@homNayStr" class="form-control" />
+                <button type="submit" class="btn btn-primary text-nowrap">Xem ngày</button>
+                <a asp-action="Index" class="btn btn-outline-secondary text-nowrap">Hôm nay</a>
+            </form>
+        }
+    </div>
+
+    <div class="row gx-3">
+        <div class="col-xl-3 col-md-6">
+            <div class="card mb-3 border-primary"><div class="card-body">
+                <div class="opacity-75"><i class="bi bi-safe"></i> Tiền trong két hiện tại</div>
+                @if (Model.CaDangMo != null && Model.TienKet != null)
+                {
+                    <h3 class="m-0 text-primary">@Tien(Model.TienKet.Value)</h3>
+                    <small class="text-muted">Ca @Model.CaDangMo.Loaica.ToLower() - @Model.CaDangMo.Tennvmo</small>
+                }
+                else
+                {
+                    <h4 class="m-0 text-muted">Chưa mở ca</h4>
+                }
+                <a asp-controller="Admin_Ca" asp-action="Index" class="small d-block mt-1">Ca làm việc & két</a>
+            </div></div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card mb-3"><div class="card-body">
+                <div class="opacity-75"><i class="bi bi-graph-up"></i> Doanh thu ngày @Model.Ngay.ToString("dd/MM")</div>
+                <h3 class="m-0 text-success">@Tien(ng.DoanhThu)</h3>
+                <small class="text-muted">@ng.SoHoaDon HĐ · TM @ng.DoanhThuTienMat.ToString("N0") · CK @ng.DoanhThuChuyenKhoan.ToString("N0")</small>
+            </div></div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card mb-3"><div class="card-body">
+                <div class="opacity-75"><i class="bi bi-cart-dash"></i> Tiền chi tiêu ngày @Model.Ngay.ToString("dd/MM")</div>
+                <h3 class="m-0 text-danger">@Tien(ng.TongChi)</h3>
+                <small class="text-muted">Nhập kho @ng.NhapKho.ToString("N0") · chi vặt @ng.ChiVat.ToString("N0")</small>
+                <a href="#thu-chi" class="small d-block">Ghi phiếu thu / chi</a>
+            </div></div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card mb-3"><div class="card-body">
+                <div class="opacity-75"><i class="bi bi-box-arrow-up"></i> Tiền hàng xuất kho ngày @Model.Ngay.ToString("dd/MM")</div>
+                <h3 class="m-0 text-warning">@Tien(ng.XuatKho)</h3>
+                <a asp-controller="Admin_XuatKho" asp-action="HienThiXuatKho" class="small">Xem phiếu xuất</a>
+            </div></div>
+        </div>
+    </div>
+
+    @* ================= THU CHI TIỀN MẶT (bồi thường, chi tiêu vặt) ================= *@
+    @{
+        bool xemHomNay = Model.Ngay == DateTime.Today;
+        bool coCa = Model.CaDangMo != null;
+        // Bồi thường gắn hóa đơn đã nằm trong doanh thu -> không cộng lại vào tổng thu ở đây
+        long tongThuNgay = Model.ThuChiNgay.Where(x => x.LaThu && string.IsNullOrWhiteSpace(x.MaChungTu)).Sum(x => (long)x.SoTien);
+        long tongChiNgay = Model.ThuChiNgay.Where(x => !x.LaThu).Sum(x => (long)x.SoTien);
+    }
+    <div id="thu-chi" class="card mb-4">
+        <div class="card-header d-flex flex-wrap justify-content-between gap-2">
+            <strong><i class="bi bi-arrow-left-right"></i> Thu chi tiền mặt ngày @Model.Ngay.ToString("dd/MM/yyyy")</strong>
+            <span class="small">
+                Thu ngoài hóa đơn <strong class="text-success">@tongThuNgay.ToString("N0") đ</strong> ·
+                Chi <strong class="text-danger">@tongChiNgay.ToString("N0") đ</strong>
+            </span>
+        </div>
+        <div class="card-body">
+            @if (TempData["ThanhCongCa"] != null)
+            {
+                <div class="alert alert-success py-2">@TempData["ThanhCongCa"]</div>
+            }
+            @if (TempData["LoiCa"] != null)
+            {
+                <div class="alert alert-danger py-2">@TempData["LoiCa"]</div>
+            }
+
+            @if (xemHomNay && coCa)
+            {
+                <div class="row gx-3">
+                    <div class="col-md-6">
+                        <div class="border border-success rounded p-3 mb-3">
+                            <h6 class="text-success"><i class="bi bi-plus-circle"></i> Phiếu thu - khách bồi thường</h6>
+                            <p class="small text-muted mb-2">
+                                Khách làm vỡ bát, hỏng đồ... mà <strong>không gắn hóa đơn nào</strong>. Nếu bàn còn đang phục vụ,
+                                hãy dùng nút "Thêm phụ phí" trong chi tiết phiếu gọi món để cộng vào hóa đơn của bàn.
+                            </p>
+                            <form asp-controller="Admin_Ca" asp-action="ThuBoiThuong" method="post">
+                                <input type="hidden" name="veTrang" value="Quy" />
+                                <input type="number" name="SoTien" class="form-control mb-2" min="1000" step="1000" required placeholder="Số tiền (đ)" />
+                                <input type="text" name="NoiDung" class="form-control mb-2" maxlength="300" required placeholder="Lý do (VD: khách làm vỡ 2 bát)" />
+                                <button type="submit" class="btn btn-success w-100">Ghi phiếu thu (cộng vào két)</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="border border-danger rounded p-3 mb-3">
+                            <h6 class="text-danger"><i class="bi bi-dash-circle"></i> Phiếu chi - mua lặt vặt</h6>
+                            <p class="small text-muted mb-2">
+                                Lấy tiền trong két đi mua đá, gas, rau thêm... Tiền két hiện có <strong>@((Model.TienKet ?? 0).ToString("N0")) đ</strong>.
+                                Mua nguyên liệu nhập kho thì ghi ở mục Nhập kho.
+                            </p>
+                            <form asp-controller="Admin_Ca" asp-action="GhiTienRa" method="post">
+                                <input type="hidden" name="veTrang" value="Quy" />
+                                <input type="hidden" name="Loai" value="@LoaiGiaoDichKet.ChiTieu" />
+                                <input type="number" name="SoTien" class="form-control mb-2" min="1000" step="1000" max="@(Model.TienKet ?? 0)" required placeholder="Số tiền (đ)" />
+                                <input type="text" name="NoiDung" class="form-control mb-2" maxlength="300" required placeholder="Chi cho việc gì (VD: mua đá, gas)" />
+                                <button type="submit" class="btn btn-danger w-100">Ghi phiếu chi (trừ két)</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (xemHomNay)
+            {
+                <div class="alert alert-warning py-2">
+                    <i class="bi bi-info-circle"></i> Chưa mở ca nên chưa ghi được thu chi (tiền thu / chi đi qua két của ca).
+                    <a asp-controller="Admin_Ca" asp-action="Index" class="alert-link">Mở ca</a>
+                </div>
+            }
+
+            @if (Model.ThuChiNgay.Count == 0)
+            {
+                <p class="text-muted m-0">Chưa có khoản thu / chi nào trong ngày này.</p>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped align-middle m-0">
+                        <thead class="table-dark">
+                            <tr><th>Giờ</th><th>Ca</th><th>Loại</th><th>Nội dung</th><th>Người ghi</th>
+                                <th class="text-end">Thu</th><th class="text-end">Chi</th><th></th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var g in Model.ThuChiNgay)
+                            {
+                                <tr>
+                                    <td>@g.ThoiGian.ToString("HH:mm")</td>
+                                    <td>@g.MaCa</td>
+                                    <td>
+                                        <span class="badge @(g.LaThu ? "bg-success" : "bg-danger")">@(g.LaThu ? "Thu bồi thường" : "Chi tiêu")</span>
+                                        @if (!string.IsNullOrWhiteSpace(g.MaChungTu)) { <div class="small text-muted">HĐ @g.MaChungTu.Trim() (đã tính trong hóa đơn)</div> }
+                                    </td>
+                                    <td>@g.NoiDung</td>
+                                    <td>@g.TenNV</td>
+                                    <td class="text-end text-success">@(g.LaThu ? g.SoTien.ToString("N0") : "")</td>
+                                    <td class="text-end text-danger">@(g.LaThu ? "" : g.SoTien.ToString("N0"))</td>
+                                    <td>
+                                        @if (g.XoaDuoc)
+                                        {
+                                            <form asp-controller="Admin_Ca" asp-action="XoaGiaoDich" method="post" class="d-inline"
+                                                  data-hoi="Xóa khoản ghi nhầm này?" onsubmit="return confirm(this.dataset.hoi);">
+                                                <input type="hidden" name="id" value="@g.MaGD" />
+                                                <input type="hidden" name="veTrang" value="Quy" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Xóa khoản ghi nhầm"><i class="bi bi-trash"></i></button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            <p class="small text-muted mt-2 mb-0">
+                Phiếu thu / chi ghi ở đây và ở trang Ca làm việc & két là cùng một dữ liệu, tự động cộng / trừ vào tiền két của ca và lên phiếu đóng ca.
+                Chỉ xóa được khoản ghi nhầm của ca đang mở.
+            </p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><strong>Hóa đơn tính doanh thu trong ngày (@Model.HoaDonNgay.Count)</strong></div>
+        <div class="card-body table-responsive" style="max-height:360px;overflow:auto">
+            @if (Model.HoaDonNgay.Count == 0)
+            {
+                <p class="text-muted m-0">Chưa có hóa đơn nào trong ngày này.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover align-middle m-0">
+                    <thead class="table-dark">
+                        <tr><th>Giờ</th><th>Mã HĐ</th><th>Loại</th><th>Bàn</th><th>Khách</th><th>Hình thức</th><th class="text-end">Tổng tiền</th></tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var h in Model.HoaDonNgay)
+                        {
+                            <tr>
+                                <td>@h.NgayLap?.ToString("HH:mm")</td>
+                                <td>@h.MaHoaDon.Trim()</td>
+                                <td>@TenLoai(h.LoaiDon)</td>
+                                <td>@h.MaBan?.Trim()</td>
+                                <td>@h.TenKhach</td>
+                                <td>@(HinhThucThanhToan.LaTienMat(h.HinhThuc) ? "Tiền mặt" : "Chuyển khoản")</td>
+                                <td class="text-end fw-semibold">@h.TongTien.ToString("N0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+
+    @* ================= CHI TIÊU THEO THÁNG (không có doanh thu tháng) ================= *@
+    <div class="d-flex flex-wrap justify-content-between align-items-end mb-2 gap-2">
+        <h5 class="m-0">Thu chi theo tháng - năm @Model.Nam</h5>
+        <form asp-action="Index" method="get" class="d-flex gap-2 align-items-end">
+            <input type="hidden" name="ngay" value="@ngayStr" />
+            <select name="thang" class="form-select">
+                @for (int m = 1; m <= 12; m++)
+                {
+                    if (m == Model.Thang) { <option value="@m" selected>Tháng @m</option> }
+                    else { <option value="@m">Tháng @m</option> }
+                }
+            </select>
+            <select name="nam" class="form-select">
+                @for (int y = namNay; y >= namNay - 5; y--)
+                {
+                    if (y == Model.Nam) { <option value="@y" selected>@y</option> }
+                    else { <option value="@y">@y</option> }
+                }
+            </select>
+            <button type="submit" class="btn btn-primary text-nowrap">Xem</button>
+        </form>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-body table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Tháng</th>
+                        <th class="text-end">Thu bồi thường</th>
+                        <th class="text-end">Nhập kho</th>
+                        <th class="text-end">Chi vặt</th>
+                        <th class="text-end">Tổng chi</th>
+                        <th class="text-end">Hàng xuất kho</th>
+                        <th style="width:20%"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var dg in Model.TheoThang)
+                    {
+                        int pChi = (int)(dg.TongChi * 100 / maxChi);
+                        <tr class="@(dg.Thang == Model.Thang ? "table-warning" : "")">
+                            <td>Tháng @dg.Thang</td>
+                            <td class="text-end text-success">@dg.ThuKhac.ToString("N0")</td>
+                            <td class="text-end">@dg.NhapKho.ToString("N0")</td>
+                            <td class="text-end">@dg.ChiVat.ToString("N0")</td>
+                            <td class="text-end fw-semibold text-danger">@dg.TongChi.ToString("N0")</td>
+                            <td class="text-end text-muted">@dg.XuatKho.ToString("N0")</td>
+                            <td><div class="bg-danger rounded" style="height:6px;width:@(pChi)%"></div></td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                    <tr>
+                        <td>Cả năm</td>
+                        <td class="text-end">@Model.TheoThang.Sum(x => x.ThuKhac).ToString("N0")</td>
+                        <td class="text-end">@Model.TheoThang.Sum(x => x.NhapKho).ToString("N0")</td>
+                        <td class="text-end">@Model.TheoThang.Sum(x => x.ChiVat).ToString("N0")</td>
+                        <td class="text-end">@Model.TheoThang.Sum(x => x.TongChi).ToString("N0")</td>
+                        <td class="text-end">@Model.TheoThang.Sum(x => x.XuatKho).ToString("N0")</td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+            <p class="small text-muted mb-0">
+                Thu bồi thường = phiếu thu khách bồi thường ghi riêng (không gắn hóa đơn).
+                Tiền chi tiêu = tiền hàng nhập kho (trả tiền mặt hay chuyển khoản đều tính) + chi tiêu vặt ghi trong các ca.
+                Tiền rút khỏi két không phải chi tiêu nên không tính. Doanh thu theo tháng chỉ tài khoản quản lý xem được.
+            </p>
+        </div>
+    </div>
+</div>

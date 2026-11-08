@@ -1,0 +1,7 @@
+﻿@using QuanLyNhaHang_.Extensions
+@*
+    Ngăn giỏ hàng trượt bên phải (thay cho Html.Action("HienThiGioHang","GioHang") của layout_user cũ).
+    Được include trong layout_user nên mọi trang khách hàng đều có.
+*@
+@await Html.PartialAsync("~/Views/GioHang/HienThiGioHang.cshtml",
+    Context.Session.GetObjectFromJson<List<GioHang>>("Cart") ?? new List<GioHang>())

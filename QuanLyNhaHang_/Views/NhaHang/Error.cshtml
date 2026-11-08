@@ -1,0 +1,10 @@
+﻿@{
+    ViewData["Title"] = "Không tìm thấy hóa đơn";
+    Layout = "~/Views/Shared/layout_admin.cshtml";
+}
+
+<div class="container mt-5 text-center">
+    <h2 class="text-danger">Không tìm thấy hóa đơn</h2>
+    <p>Mã hóa đơn không hợp lệ hoặc hóa đơn không tồn tại.</p>
+    <a asp-action="ShowHD" asp-controller="NhaHang" class="btn btn-primary">Về danh sách hóa đơn</a>
+</div>
